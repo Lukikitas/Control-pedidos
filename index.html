@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sincronizador de Códigos en Tiempo Real</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Animación para nuevos pedidos en el visualizador */
+        @keyframes pulse-bg {
+            0% { background-color: #e0f2fe; transform: scale(1); }
+            50% { background-color: #bae6fd; transform: scale(1.02); }
+            100% { background-color: #e0f2fe; transform: scale(1); }
+        }
+        .new-code-pulse {
+            animation: pulse-bg 1s ease-in-out;
+        }
+        .source-btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="app-container" class="max-w-7xl mx-auto p-4">
+        
+        <!-- 1. Vista de Selección de Sesión -->
+        <div id="session-view">
+            <div class="bg-white rounded-xl shadow-md p-8 text-center max-w-md mx-auto">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Control de Pedidos</h1>
+                <p class="text-gray-600 mb-8">Crea o únete a una sesión para sincronizar los dispositivos.</p>
+                <div class="space-y-4">
+                    <button id="create-session-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Crear Nueva Sesión</button>
+                    <div class="relative flex items-center"><div class="flex-grow border-t border-gray-300"></div><span class="flex-shrink mx-4 text-gray-500">ó</span><div class="flex-grow border-t border-gray-300"></div></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="session-id-input" placeholder="Pegar ID de sesión" class="flex-grow w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="join-session-btn" class="bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-lg hover:bg-gray-300">Unirse</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Vista de Selección de Rol (oculta) -->
+        <div id="role-selection-view" class="hidden">
+             <div class="bg-white rounded-xl shadow-md p-8 text-center max-w-md mx-auto">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Selecciona tu Rol</h1>
+                <p class="text-gray-600 mb-8">¿Cómo usarás este dispositivo?</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button id="select-operator-btn" class="p-6 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg transition">
+                        <span class="text-5xl">⌨️</span>
+                        <h2 class="text-xl font-bold mt-2">Operador</h2>
+                        <p class="text-sm text-gray-500">Para ingresar códigos.</p>
+                    </button>
+                    <button id="select-viewer-btn" class="p-6 bg-green-50 hover:bg-green-100 border-2 border-green-200 rounded-lg transition">
+                        <span class="text-5xl">📺</span>
+                        <h2 class="text-xl font-bold mt-2">Visualizador</h2>
+                        <p class="text-sm text-gray-500">Para mostrar la pantalla.</p>
+                    </button>
+                </div>
+                 <button id="role-leave-session-btn" class="mt-8 text-sm text-gray-500 hover:underline">Salir de la sesión</button>
+            </div>
+        </div>
+
+        <!-- 3. Vista Principal (Operador y Visualizador) (oculta) -->
+        <div id="main-view" class="hidden">
+            <!-- Vista de Operador -->
+            <div id="operator-view" class="hidden">
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Columna de Entrada -->
+                    <div class="bg-white rounded-xl shadow-md p-6 flex flex-col">
+                        <div class="flex justify-between items-start mb-4">
+                           <h2 class="text-xl font-bold">Operador</h2>
+                           <div class="text-right">
+                               <p id="operator-session-id" class="text-xs text-gray-500 font-mono"></p>
+                               <button id="op-leave-session-btn" class="text-sm text-red-600 hover:underline">Salir</button>
+                           </div>
+                        </div>
+                        <!-- Display de código -->
+                        <div id="code-display" class="w-full text-center text-5xl font-mono tracking-widest px-4 py-3 bg-gray-100 border-2 border-gray-300 rounded-lg mb-4 h-20 flex items-center justify-center"></div>
+                        <!-- Teclado en pantalla -->
+                        <div class="grid grid-cols-3 gap-2 mb-4">
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">1</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">2</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">3</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">4</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">5</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">6</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">7</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">8</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">9</button>
+                            <button id="clear-btn" class="text-xl font-bold py-4 bg-red-200 rounded-lg hover:bg-red-300 transition-colors">C</button>
+                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">0</button>
+                            <button id="backspace-btn" class="text-2xl font-bold py-4 bg-yellow-200 rounded-lg hover:bg-yellow-300 transition-colors">⌫</button>
+                        </div>
+                        <!-- Fuentes de pedido -->
+                        <div class="grid grid-cols-3 gap-2 mb-4">
+                           <button class="source-btn flex items-center justify-center gap-2 p-3 rounded-lg transition-all duration-200 bg-red-600 text-white font-semibold" data-source="PedidosYa">PedidosYa</button>
+                           <button class="source-btn flex items-center justify-center gap-2 p-3 rounded-lg transition-all duration-200 bg-sky-500 text-white font-semibold" data-source="Rappi">Rappi</button>
+                           <button class="source-btn flex items-center justify-center gap-2 p-3 rounded-lg transition-all duration-200 bg-yellow-400 text-black font-semibold" data-source="MercadoPago">M. Pago</button>
+                        </div>
+                        <button id="submit-code-btn" class="w-full bg-green-600 text-white font-bold py-4 rounded-lg hover:bg-green-700 transition shadow-sm text-lg">Guardar Pedido</button>
+                    </div>
+                    <!-- Columna de Lista -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">Pedidos Activos</h2>
+                        <div id="operator-code-list" class="space-y-2 h-[600px] overflow-y-auto pr-2">
+                           <p class="op-no-codes text-gray-500 text-center mt-16">No hay pedidos activos.</p>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+
+            <!-- Vista de Visualizador -->
+            <div id="viewer-view" class="hidden">
+                 <div class="flex justify-between items-center mb-2 px-2">
+                     <h1 class="text-2xl font-black text-gray-700">VISUALIZADOR DE PEDIDOS</h1>
+                     <button id="viewer-leave-session-btn" class="text-sm text-red-600 hover:underline">Salir</button>
+                 </div>
+                 <div id="viewer-code-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <p class="viewer-no-codes text-gray-500 text-center mt-32 text-2xl col-span-full">Esperando pedidos...</p>
+                 </div>
+            </div>
+        </div>
+        
+        <!-- Modal de Notificación -->
+        <div id="notification-modal" class="hidden fixed top-5 right-5 bg-white border rounded-lg shadow-lg px-6 py-4 z-50 transition-transform duration-300 translate-x-full">
+            <p id="notification-message"></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuración ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-code-sync-pro';
+
+        // --- Inicialización y Estado Global ---
+        let app, auth, db;
+        let userId = null;
+        let currentSessionId = null;
+        let unsubscribeFromCodes = null;
+        let currentCodes = [];
+        let currentSource = null;
+
+        // --- Elementos del DOM ---
+        const sessionView = document.getElementById('session-view');
+        const roleSelectionView = document.getElementById('role-selection-view');
+        const mainView = document.getElementById('main-view');
+        const operatorView = document.getElementById('operator-view');
+        const viewerView = document.getElementById('viewer-view');
+        
+        // --- Inicialización de Firebase y Auth ---
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Error inicializando Firebase:", e);
+            showNotification("Error de configuración. La app no funcionará.", "error");
+        }
+        
+        async function initializeAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error durante la autenticación:", error);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && !userId) {
+                userId = user.uid;
+                console.log("Usuario listo con UID:", userId);
+                const savedSessionId = localStorage.getItem('activeSessionId');
+                if (savedSessionId) {
+                    joinSession(savedSessionId);
+                }
+            }
+        });
+
+        // --- Lógica de Flujo de Vistas ---
+        
+        function showView(viewToShow) {
+            [sessionView, roleSelectionView, mainView].forEach(v => v.classList.add('hidden'));
+            viewToShow.classList.remove('hidden');
+        }
+
+        function leaveSession() {
+            if (unsubscribeFromCodes) unsubscribeFromCodes();
+            unsubscribeFromCodes = null;
+            currentSessionId = null;
+            localStorage.removeItem('activeSessionId');
+            localStorage.removeItem('userRole');
+            showView(sessionView);
+        }
+        
+        async function joinSession(sessionId) {
+            if (!auth.currentUser) {
+                setTimeout(() => joinSession(sessionId), 1000);
+                return;
+            }
+            currentSessionId = sessionId;
+            const sessionDocRef = doc(db, "artifacts", appId, "public", "data", "sessions", currentSessionId);
+            try {
+                const docSnap = await getDoc(sessionDocRef);
+                if (!docSnap.exists()) {
+                    await setDoc(sessionDocRef, { createdAt: serverTimestamp(), codes: [] });
+                }
+                localStorage.setItem('activeSessionId', currentSessionId);
+                
+                const savedRole = localStorage.getItem('userRole');
+                if (savedRole) {
+                    setupRoleView(savedRole);
+                } else {
+                    showView(roleSelectionView);
+                }
+                listenForCodes();
+            } catch (error) {
+                console.error("Error al unirse a la sesión:", error);
+                showNotification("No se pudo unir a la sesión.", "error");
+            }
+        }
+        
+        function setupRoleView(role) {
+            localStorage.setItem('userRole', role);
+            showView(mainView);
+            if (role === 'operator') {
+                operatorView.classList.remove('hidden');
+                viewerView.classList.add('hidden');
+                document.getElementById('operator-session-id').textContent = `ID: ${currentSessionId}`;
+            } else {
+                viewerView.classList.remove('hidden');
+                operatorView.classList.add('hidden');
+            }
+        }
+
+        // --- Lógica de Códigos ---
+        function listenForCodes() {
+            if (unsubscribeFromCodes) unsubscribeFromCodes();
+            const sessionDocRef = doc(db, "artifacts", appId, "public", "data", "sessions", currentSessionId);
+            unsubscribeFromCodes = onSnapshot(sessionDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const newCodesData = docSnap.data().codes || [];
+                    const isNewCode = newCodesData.length > currentCodes.length;
+                    currentCodes = newCodesData.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+                    renderOperatorList(currentCodes);
+                    renderViewerList(currentCodes, isNewCode);
+                }
+            });
+        }
+        
+        async function addCode(code, source) {
+            const newCode = {
+                id: crypto.randomUUID(),
+                code: code,
+                source: source,
+                timestamp: new Date()
+            };
+            const sessionDocRef = doc(db, "artifacts", appId, "public", "data", "sessions", currentSessionId);
+            const newCodesArray = [newCode, ...currentCodes];
+            try {
+                await updateDoc(sessionDocRef, { codes: newCodesArray });
+            } catch (error) {
+                console.error("Error guardando código:", error);
+            }
+        }
+
+        async function deleteCode(codeId) {
+            const newCodesArray = currentCodes.filter(c => c.id !== codeId);
+            const sessionDocRef = doc(db, "artifacts", appId, "public", "data", "sessions", currentSessionId);
+            try {
+                await updateDoc(sessionDocRef, { codes: newCodesArray });
+            } catch (error) {
+                console.error("Error borrando código:", error);
+            }
+        }
+
+        // --- Renderizado de Vistas ---
+        
+        function renderOperatorList(codes) {
+            const listEl = document.getElementById('operator-code-list');
+            listEl.innerHTML = '';
+            if (codes.length === 0) {
+                listEl.innerHTML = `<p class="op-no-codes text-gray-500 text-center mt-16">No hay pedidos activos.</p>`;
+                return;
+            }
+            const sourceStyles = {
+                'PedidosYa': 'bg-red-100 text-red-800',
+                'Rappi': 'bg-sky-100 text-sky-800',
+                'MercadoPago': 'bg-yellow-100 text-yellow-800'
+            };
+            codes.forEach(c => {
+                const style = sourceStyles[c.source] || 'bg-gray-100';
+                listEl.innerHTML += `
+                    <div class="flex items-center p-3 ${style} rounded-lg">
+                        <span class="font-mono text-lg tracking-wider font-bold">${c.code}</span>
+                        <span class="ml-4 text-sm font-semibold">${c.source}</span>
+                        <button data-id="${c.id}" class="delete-btn ml-auto p-2 rounded-full hover:bg-red-200">
+                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>`;
+            });
+        }
+
+        function renderViewerList(codes, isNewCode) {
+            const listEl = document.getElementById('viewer-code-list');
+            listEl.innerHTML = '';
+             if (codes.length === 0) {
+                listEl.innerHTML = `<p class="viewer-no-codes text-gray-500 text-center mt-32 text-2xl col-span-full">Esperando pedidos...</p>`;
+                return;
+            }
+            const sourceStyles = {
+                'PedidosYa': 'bg-red-600 text-white',
+                'Rappi': 'bg-sky-500 text-white',
+                'MercadoPago': 'bg-yellow-400 text-black'
+            };
+            codes.forEach((c, index) => {
+                const style = sourceStyles[c.source] || 'bg-gray-200 text-gray-800';
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-lg p-4 flex flex-col items-center justify-center aspect-video';
+                if (index === 0 && isNewCode) {
+                    card.classList.add('new-code-pulse');
+                }
+                card.innerHTML = `
+                    <p class="font-black text-gray-900 text-7xl md:text-8xl lg:text-9xl tracking-tighter">${c.code}</p>
+                    <div class="mt-4 px-6 py-2 rounded-lg ${style}">
+                        <p class="font-bold text-xl">${c.source}</p>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('create-session-btn').addEventListener('click', () => joinSession(crypto.randomUUID().slice(0, 8)));
+        document.getElementById('join-session-btn').addEventListener('click', () => {
+            const id = document.getElementById('session-id-input').value.trim();
+            if (id) joinSession(id);
+        });
+        document.getElementById('select-operator-btn').addEventListener('click', () => setupRoleView('operator'));
+        document.getElementById('select-viewer-btn').addEventListener('click', () => setupRoleView('viewer'));
+        [document.getElementById('role-leave-session-btn'), document.getElementById('op-leave-session-btn'), document.getElementById('viewer-leave-session-btn')].forEach(btn => btn.addEventListener('click', leaveSession));
+
+        // Listeners del Operador
+        document.querySelectorAll('.keypad-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const display = document.getElementById('code-display');
+                if (display.textContent.length < 4) {
+                    display.textContent += btn.textContent;
+                }
+            });
+        });
+        document.getElementById('clear-btn').addEventListener('click', () => document.getElementById('code-display').textContent = '');
+        document.getElementById('backspace-btn').addEventListener('click', () => {
+            const display = document.getElementById('code-display');
+            display.textContent = display.textContent.slice(0, -1);
+        });
+        document.querySelectorAll('.source-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSource = btn.dataset.source;
+            });
+        });
+        document.getElementById('submit-code-btn').addEventListener('click', () => {
+            const code = document.getElementById('code-display').textContent;
+            if (code && currentSource) {
+                addCode(code, currentSource);
+                document.getElementById('code-display').textContent = '';
+                document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+                currentSource = null;
+            } else {
+                showNotification("Ingresa un código y selecciona un origen", "error");
+            }
+        });
+        document.getElementById('operator-code-list').addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (deleteBtn) {
+                deleteCode(deleteBtn.dataset.id);
+            }
+        });
+        
+        // --- Utilidades ---
+        let notificationTimeout;
+        function showNotification(message, type = 'success') {
+            const modal = document.getElementById('notification-modal');
+            document.getElementById('notification-message').textContent = message;
+            modal.className = 'hidden';
+            modal.classList.add('fixed', 'top-5', 'right-5', 'border', 'rounded-lg', 'shadow-lg', 'px-6', 'py-4', 'z-50', 'transition-transform', 'duration-300', 'translate-x-full');
+            modal.classList.add(type === 'error' ? 'bg-red-100' : 'bg-white');
+            void modal.offsetWidth;
+            modal.classList.remove('translate-x-full');
+            clearTimeout(notificationTimeout);
+            notificationTimeout = setTimeout(() => {
+                modal.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // --- Inicio ---
+        initializeAuth();
+
+    </script>
+</body>
+</html>

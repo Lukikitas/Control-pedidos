@@ -41,27 +41,23 @@
         .dark .dark\:text-gray-300 { color: #d1d5db; }
         .dark .dark\:border-gray-700 { border-color: #374151; }
         .dark .dark\:hover\:bg-gray-700:hover { background-color: #374151; }
-        #dark-mode-toggle:checked ~ .dot {
-            transform: translateX(100%);
-            background-color: #3b82f6;
-        }
         /* Animación de la calculadora */
-        @keyframes slide-in {
-            from { transform: translateY(100%) translateX(100%); opacity: 0; }
-            to { transform: translateY(0) translateX(0); opacity: 1; }
+        @keyframes fade-in-scale {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
         #calculator-modal.open {
-            animation: slide-in 0.3s ease-out forwards;
+            animation: fade-in-scale 0.2s ease-out forwards;
         }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-300 transition-colors">
 
-    <div id="app-container" class="p-4">
+    <div id="app-container" class="p-0 sm:p-4">
         
         <!-- 1. Vista de Login/Registro -->
         <div id="login-view">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center max-w-md mx-auto">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center max-w-md mx-auto mt-10">
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Control de Pedidos</h1>
                 <p class="text-gray-600 dark:text-gray-300 mb-6">Inicia sesión o regístrate para continuar.</p>
                 <form id="login-form" class="space-y-4">
@@ -81,21 +77,21 @@
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Selecciona tu Rol</h1>
                 <p id="welcome-email" class="text-gray-600 dark:text-gray-300 mb-8"></p>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <button id="select-operator-btn" class="p-6 bg-blue-50 dark:bg-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900 border-2 border-blue-200 dark:border-blue-800 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-5xl">⌨️</span>
-                        <h2 class="text-xl font-bold mt-2 dark:text-white">Operador</h2>
+                    <button id="select-operator-btn" class="p-4 sm:p-6 bg-blue-50 dark:bg-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900 border-2 border-blue-200 dark:border-blue-800 rounded-lg transition flex flex-col items-center justify-center">
+                        <span class="text-4xl sm:text-5xl">⌨️</span>
+                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Operador</h2>
                     </button>
-                    <button id="select-viewer-btn" class="p-6 bg-green-50 dark:bg-green-900/50 hover:bg-green-100 dark:hover:bg-green-900 border-2 border-green-200 dark:border-green-800 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-5xl">📺</span>
-                        <h2 class="text-xl font-bold mt-2 dark:text-white">Visualizador</h2>
+                    <button id="select-viewer-btn" class="p-4 sm:p-6 bg-green-50 dark:bg-green-900/50 hover:bg-green-100 dark:hover:bg-green-900 border-2 border-green-200 dark:border-green-800 rounded-lg transition flex flex-col items-center justify-center">
+                        <span class="text-4xl sm:text-5xl">📺</span>
+                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Visualizador</h2>
                     </button>
-                    <button id="select-history-btn" class="p-6 bg-purple-50 dark:bg-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-900 border-2 border-purple-200 dark:border-purple-800 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-5xl">📋</span>
-                        <h2 class="text-xl font-bold mt-2 dark:text-white">Historial</h2>
+                    <button id="select-history-btn" class="p-4 sm:p-6 bg-purple-50 dark:bg-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-900 border-2 border-purple-200 dark:border-purple-800 rounded-lg transition flex flex-col items-center justify-center">
+                        <span class="text-4xl sm:text-5xl">📋</span>
+                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Historial</h2>
                     </button>
-                    <button id="select-settings-btn" class="p-6 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-500 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-5xl">⚙️</span>
-                        <h2 class="text-xl font-bold mt-2 dark:text-white">Ajustes</h2>
+                    <button id="select-settings-btn" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-500 rounded-lg transition flex flex-col items-center justify-center">
+                        <span class="text-4xl sm:text-5xl">⚙️</span>
+                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Ajustes</h2>
                     </button>
                 </div>
                  <button id="role-logout-btn" class="mt-8 text-sm text-gray-500 hover:underline">Cerrar Sesión</button>
@@ -107,22 +103,13 @@
             <!-- Vistas de Operador, Visualizador, Historial y Ajustes -->
             <div id="operator-view" class="hidden">
                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex flex-col">
-                        <div class="flex justify-between items-center mb-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6 flex flex-col">
+                        <div class="flex flex-wrap justify-between items-center mb-4 gap-y-2">
                            <h2 class="text-xl font-bold">Operador</h2>
-                           <div class="flex items-center gap-4">
+                           <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
                                 <button id="op-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
-                                <button id="switch-to-viewer-btn" class="text-sm text-blue-600 hover:underline">Ver Visualizador</button>
-                                <button id="open-calculator-btn" class="text-2xl">📟</button>
-                                <label for="dark-mode-toggle" class="flex items-center cursor-pointer">
-                                    <span class="mr-2 text-sm">🌙</span>
-                                    <div class="relative">
-                                        <input type="checkbox" id="dark-mode-toggle" class="sr-only">
-                                        <div class="block bg-gray-600 w-10 h-6 rounded-full"></div>
-                                        <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
-                                    </div>
-                                </label>
-                               <button id="op-logout-btn" class="text-sm text-red-600 hover:underline">Cerrar Sesión</button>
+                                <button id="switch-to-viewer-btn" class="text-sm text-blue-600 hover:underline">Visualizador</button>
+                               <button id="op-logout-btn" class="text-sm text-red-600 hover:underline">Salir</button>
                            </div>
                         </div>
                         <div id="code-display" class="w-full text-center text-5xl font-mono tracking-widest px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg mb-4 h-20 flex items-center justify-center"></div>
@@ -152,6 +139,7 @@
                         <div id="operator-code-list" class="space-y-2 h-[600px] overflow-y-auto pr-2"></div>
                     </div>
                  </div>
+                 <button id="open-calculator-btn" class="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg text-3xl z-30 hover:bg-blue-700 transition">📟</button>
             </div>
             <div id="viewer-view" class="hidden">
                  <div class="flex justify-between items-center mb-2 px-2">
@@ -216,8 +204,8 @@
                             <input type="range" id="viewer-size-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
                         </div>
                         <div>
-                            <label for="calculator-size-input" class="block mb-2 text-sm font-medium">Tamaño de la calculadora (1: Pequeña, 3: Grande)</label>
-                            <input type="range" id="calculator-size-input" min="1" max="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                            <label for="calculator-size-input" class="block mb-2 text-sm font-medium">Tamaño de la calculadora (1: Pequeña, 5: Muy Grande)</label>
+                            <input type="range" id="calculator-size-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
                         </div>
                     </div>
                     <div class="flex justify-end gap-4 mt-8">
@@ -231,8 +219,9 @@
             <p id="notification-message"></p>
         </div>
         <!-- Calculadora Flotante -->
-        <div id="calculator-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40">
-            <div id="calculator-modal" class="absolute bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform">
+        <div id="calculator-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+            <div id="calculator-modal" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform">
+                <div id="calc-expression-display" class="text-right text-gray-500 dark:text-gray-400 text-sm h-6 mb-1 truncate"></div>
                 <div id="calc-display" class="bg-gray-100 dark:bg-gray-900 text-right rounded p-2 mb-2 text-2xl font-mono">0</div>
                 <div id="calc-buttons" class="grid grid-cols-4 gap-2">
                     <!-- Fila 1 -->
@@ -292,7 +281,7 @@
             blinkMinutes: 5,
             scrollSpeed: 3, // 1-5
             viewerSize: 3,  // 1-5
-            calculatorSize: 2, // 1-3
+            calculatorSize: 3, // 1-5
         };
 
         const loginView = document.getElementById('login-view');
@@ -661,7 +650,7 @@
                 blinkMinutes: parseInt(document.getElementById('blink-minutes-input').value) || 5,
                 scrollSpeed: parseInt(document.getElementById('scroll-speed-input').value) || 3,
                 viewerSize: parseInt(document.getElementById('viewer-size-input').value) || 3,
-                calculatorSize: parseInt(document.getElementById('calculator-size-input').value) || 2,
+                calculatorSize: parseInt(document.getElementById('calculator-size-input').value) || 3,
             };
             const sessionDocRef = doc(db, "sessions", userId);
             await updateDoc(sessionDocRef, { settings: newSettings });
@@ -670,27 +659,24 @@
         });
 
         // Modo Oscuro
-        const darkModeToggle = document.getElementById('dark-mode-toggle');
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
-            darkModeToggle.checked = true;
         }
-        darkModeToggle.addEventListener('change', () => {
-            document.documentElement.classList.toggle('dark');
-            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-        });
 
         // Calculadora
         const calculatorOverlay = document.getElementById('calculator-overlay');
         const calculatorModal = document.getElementById('calculator-modal');
-        let calcState = { displayValue: '0', firstOperand: null, waitingForSecondOperand: false, operator: null };
+        let calcState = { displayValue: '0', firstOperand: null, waitingForSecondOperand: false, operator: null, expression: '' };
 
-        function updateCalcDisplay() { document.getElementById('calc-display').textContent = calcState.displayValue; }
+        function updateCalcDisplay() { 
+            document.getElementById('calc-display').textContent = calcState.displayValue;
+            document.getElementById('calc-expression-display').textContent = calcState.expression;
+        }
         
         document.getElementById('open-calculator-btn').addEventListener('click', () => {
-            const sizeClasses = ['w-64', 'w-72', 'w-80'];
-            calculatorModal.className = 'absolute bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform open';
-            calculatorModal.classList.add(sizeClasses[userSettings.calculatorSize - 1] || sizeClasses[1]);
+            const sizeClasses = ['w-64', 'w-72', 'w-80', 'w-96', 'w-[26rem]'];
+            calculatorModal.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform open';
+            calculatorModal.classList.add(sizeClasses[userSettings.calculatorSize - 1] || sizeClasses[2]);
             calculatorOverlay.classList.remove('hidden');
         });
         calculatorOverlay.addEventListener('click', (e) => {
@@ -702,20 +688,22 @@
         document.getElementById('calc-buttons').addEventListener('click', (e) => {
             const { target } = e;
             if (!target.matches('button')) return;
+            const key = target.textContent;
             
-            if (target.textContent === 'C') {
-                calcState = { displayValue: '0', firstOperand: null, waitingForSecondOperand: false, operator: null };
-            } else if (!isNaN(parseFloat(target.textContent)) || target.textContent === '.') {
+            if (key === 'C') {
+                calcState = { displayValue: '0', firstOperand: null, waitingForSecondOperand: false, operator: null, expression: '' };
+            } else if (!isNaN(parseFloat(key)) || key === '.') {
                 if (calcState.waitingForSecondOperand) {
-                    calcState.displayValue = target.textContent;
+                    calcState.displayValue = key;
                     calcState.waitingForSecondOperand = false;
                 } else {
-                    calcState.displayValue = calcState.displayValue === '0' ? target.textContent : calcState.displayValue + target.textContent;
+                    calcState.displayValue = calcState.displayValue === '0' ? key : calcState.displayValue + key;
                 }
-            } else if (['+', '-', '*', '/'].includes(target.textContent)) {
+            } else if (['+', '-', '*', '/'].includes(key)) {
                 const inputValue = parseFloat(calcState.displayValue);
                 if (calcState.operator && calcState.waitingForSecondOperand)  {
-                    calcState.operator = target.textContent;
+                    calcState.operator = key;
+                    calcState.expression = `${calcState.firstOperand} ${key}`;
                     return;
                 }
                 if (calcState.firstOperand == null) {
@@ -726,10 +714,12 @@
                     calcState.firstOperand = result;
                 }
                 calcState.waitingForSecondOperand = true;
-                calcState.operator = target.textContent;
-            } else if (target.textContent === '=') {
+                calcState.operator = key;
+                calcState.expression = `${calcState.firstOperand} ${key}`;
+            } else if (key === '=') {
                 if (calcState.operator == null || calcState.waitingForSecondOperand) return;
                 const inputValue = parseFloat(calcState.displayValue);
+                calcState.expression = `${calcState.firstOperand} ${calcState.operator} ${inputValue} =`;
                 const result = performCalculation[calcState.operator](calcState.firstOperand, inputValue);
                 calcState.displayValue = `${parseFloat(result.toFixed(7))}`;
                 calcState.firstOperand = null;

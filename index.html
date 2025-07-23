@@ -46,7 +46,7 @@
             from { transform: scale(0.9); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
-        #calculator-modal.open {
+        #calculator-modal.open, #rappicargo-modal.open {
             animation: fade-in-scale 0.2s ease-out forwards;
         }
     </style>
@@ -127,10 +127,11 @@
                             <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">0</button>
                             <button id="backspace-btn" class="text-2xl font-bold py-4 bg-yellow-200 dark:bg-yellow-800/50 rounded-lg hover:bg-yellow-300 dark:hover:bg-yellow-700/50">⌫</button>
                         </div>
-                        <div class="grid grid-cols-3 gap-2 mb-4">
+                        <div class="grid grid-cols-4 gap-2 mb-4">
                            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-red-600 text-white font-semibold" data-source="PedidosYa">PedidosYa</button>
                            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-sky-500 text-white font-semibold" data-source="Rappi">Rappi</button>
                            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-yellow-400 text-black font-semibold" data-source="MercadoPago">M. Pago</button>
+                           <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-orange-500 text-white font-semibold" data-source="RappiCargo">RappiCargo</button>
                         </div>
                         <button id="submit-code-btn" class="w-full bg-green-600 text-white font-bold py-4 rounded-lg hover:bg-green-700">Guardar Pedido</button>
                     </div>
@@ -165,6 +166,7 @@
                                 <option value="all">Todos</option>
                                 <option value="PedidosYa">PedidosYa</option>
                                 <option value="Rappi">Rappi</option>
+                                <option value="RappiCargo">RappiCargo</option>
                                 <option value="MercadoPago">MercadoPago</option>
                             </select>
                         </div>
@@ -179,7 +181,7 @@
                         <table id="history-table" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                 <tr>
-                                    <th scope="col" class="px-6 py-3">Código</th>
+                                    <th scope="col" class="px-6 py-3">Código/Nombre</th>
                                     <th scope="col" class="px-6 py-3">Tipo</th>
                                     <th scope="col" class="px-6 py-3">Creado</th>
                                     <th scope="col" class="px-6 py-3">Completado</th>
@@ -258,6 +260,17 @@
                     <!-- Fila 5 -->
                     <button class="calc-btn bg-gray-100 dark:bg-gray-700 col-span-2 rounded p-2 text-lg">0</button>
                     <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">.</button>
+                </div>
+            </div>
+        </div>
+        <!-- Modal para RappiCargo -->
+        <div id="rappicargo-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+            <div id="rappicargo-modal" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-sm">
+                <h3 class="text-lg font-bold mb-4">Ingresar Nombre para RappiCargo</h3>
+                <input type="text" id="rappicargo-name-input" placeholder="Nombre del cliente..." class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <div class="flex justify-end gap-2 mt-4">
+                    <button id="cancel-rappicargo-btn" class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">Cancelar</button>
+                    <button id="save-rappicargo-btn" class="bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600">Guardar</button>
                 </div>
             </div>
         </div>
@@ -432,10 +445,10 @@
             });
         }
 
-        async function addCode(code, source) {
+        async function addCode(code, source, type = 'code') {
             const userId = auth.currentUser?.uid;
             if (!userId) return;
-            const newCode = { id: crypto.randomUUID(), code, source, timestamp: new Date() };
+            const newCode = { id: crypto.randomUUID(), code, source, timestamp: new Date(), type };
             const sessionDocRef = doc(db, "sessions", userId);
             await updateDoc(sessionDocRef, { codes: [newCode, ...sessionData.codes] });
         }
@@ -468,7 +481,7 @@
 
             codes.forEach(c => {
                 const isOld = c.timestamp?.toDate && (now - c.timestamp.toDate().getTime() > alertTime);
-                const sourceStyles = { 'PedidosYa': 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300', 'Rappi': 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300', 'MercadoPago': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' };
+                const sourceStyles = { 'PedidosYa': 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300', 'Rappi': 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300', 'RappiCargo': 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300', 'MercadoPago': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' };
                 const style = sourceStyles[c.source] || 'bg-gray-100';
                 const blinkingClass = isOld ? 'blinking-border' : '';
                 
@@ -496,18 +509,23 @@
                 return;
             }
             
-            const sourceStyles = { 'PedidosYa': 'bg-red-600 text-white', 'Rappi': 'bg-sky-500 text-white', 'MercadoPago': 'bg-yellow-400 text-black' };
+            const sourceStyles = { 'PedidosYa': 'bg-red-600 text-white', 'Rappi': 'bg-sky-500 text-white', 'RappiCargo': 'bg-sky-500 text-white', 'MercadoPago': 'bg-yellow-400 text-black' };
             const sizeClasses = ['text-5xl md:text-6xl', 'text-6xl md:text-7xl', 'text-7xl md:text-8xl', 'text-8xl', 'text-8xl lg:text-9xl'];
-            const sizeClass = sizeClasses[userSettings.viewerSize - 1] || sizeClasses[2];
-
+            
             codes.forEach((c, index) => {
+                let sizeClass = sizeClasses[userSettings.viewerSize - 1] || sizeClasses[2];
+                if (c.type === 'name') {
+                    sizeClass = 'text-4xl md:text-5xl'; // Use a smaller font size for names
+                }
+
+                const displaySource = c.source === 'RappiCargo' ? 'Rappi' : c.source;
                 const style = sourceStyles[c.source] || 'bg-gray-200';
                 const card = document.createElement('div');
                 card.className = 'bg-white rounded-xl shadow-lg p-4 flex flex-col items-center justify-center aspect-video';
                 if (index === 0 && isNewCode) card.classList.add('new-order-pop');
                 card.innerHTML = `
                     <p class="font-black text-gray-900 ${sizeClass} tracking-tighter">${c.code}</p>
-                    <div class="mt-4 px-6 py-2 rounded-lg ${style}"><p class="font-bold text-xl">${c.source}</p></div>`;
+                    <div class="mt-4 px-6 py-2 rounded-lg ${style}"><p class="font-bold text-xl">${displaySource}</p></div>`;
                 listEl.appendChild(card);
             });
             
@@ -622,9 +640,15 @@
             display.textContent = display.textContent.slice(0, -1);
         });
         document.querySelectorAll('.source-btn').forEach(btn => btn.addEventListener('click', () => {
-            document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentSource = btn.dataset.source;
+            const source = btn.dataset.source;
+            if (source === 'RappiCargo') {
+                document.getElementById('rappicargo-overlay').classList.remove('hidden');
+                document.getElementById('rappicargo-modal').classList.add('open');
+            } else {
+                document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSource = source;
+            }
         }));
         document.getElementById('submit-code-btn').addEventListener('click', () => {
             const code = document.getElementById('code-display').textContent;
@@ -755,6 +779,26 @@
             '+': (first, second) => first + second,
             '-': (first, second) => first - second,
         };
+
+        // RappiCargo Modal
+        const rappicargoOverlay = document.getElementById('rappicargo-overlay');
+        const rappicargoModal = document.getElementById('rappicargo-modal');
+        document.getElementById('cancel-rappicargo-btn').addEventListener('click', () => {
+            rappicargoModal.classList.remove('open');
+            rappicargoOverlay.classList.add('hidden');
+        });
+        document.getElementById('save-rappicargo-btn').addEventListener('click', () => {
+            const nameInput = document.getElementById('rappicargo-name-input');
+            const name = nameInput.value.trim();
+            if (name) {
+                addCode(name, 'RappiCargo', 'name');
+                nameInput.value = '';
+                rappicargoModal.classList.remove('open');
+                rappicargoOverlay.classList.add('hidden');
+            } else {
+                showNotification("Por favor, ingresa un nombre.", "error");
+            }
+        });
         
         // --- UTILIDADES ---
         
@@ -786,4 +830,3 @@
     </script>
 </body>
 </html>
-

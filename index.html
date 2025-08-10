@@ -1,832 +1,1013 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sincronizador de Pedidos con Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Librerías para PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        /* Nueva animación POP */
-        @keyframes new-order-pop {
-            0% { transform: scale(0.5); opacity: 0; }
-            60% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 15px rgba(59, 130, 246, 0.3); }
-            80% { transform: scale(0.95); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
-        .new-order-pop { animation: new-order-pop 0.6s ease-out forwards; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sincronizador de Pedidos + Cierre pedidos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Librerías para PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* POP de pedido nuevo */
+    @keyframes new-order-pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      60% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 15px rgba(59,130,246,.3); }
+      80% { transform: scale(.95); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+    }
+    .new-order-pop { animation: new-order-pop .6s ease-out forwards; }
+    /* Botón de origen activo */
+    .source-btn.active {
+      transform: scale(1.05) translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,.2);
+      filter: brightness(1.1);
+      border: 4px solid #3b82f6;
+    }
+    /* Borde parpadeante para pedidos viejos */
+    @keyframes blink-red { 50% { border-color: transparent; } }
+    .blinking-border { border: 3px solid #ef4444; animation: blink-red 1.5s step-end infinite; }
 
-        .source-btn.active {
-            transform: scale(1.05) translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            filter: brightness(1.1);
-            border: 4px solid #3b82f6;
-        }
-        /* Animación para borde parpadeante */
-        @keyframes blink-red {
-            50% { border-color: transparent; }
-        }
-        .blinking-border {
-            border: 3px solid #ef4444;
-            animation: blink-red 1.5s step-end infinite;
-        }
-        /* Estilos Modo Oscuro */
-        .dark .dark\:bg-gray-800 { background-color: #1f2937; }
-        .dark .dark\:bg-gray-900 { background-color: #111827; }
-        .dark .dark\:text-white { color: #fff; }
-        .dark .dark\:text-gray-300 { color: #d1d5db; }
-        .dark .dark\:border-gray-700 { border-color: #374151; }
-        .dark .dark\:hover\:bg-gray-700:hover { background-color: #374151; }
-        /* Animación de la calculadora */
-        @keyframes fade-in-scale {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        #calculator-modal.open, #rappicargo-modal.open {
-            animation: fade-in-scale 0.2s ease-out forwards;
-        }
-    </style>
+    /* Modo Oscuro utilidades */
+    .dark .dark\:bg-gray-800 { background-color:#1f2937; }
+    .dark .dark\:bg-gray-900 { background-color:#111827; }
+    .dark .dark\:text-white { color:#fff; }
+    .dark .dark\:text-gray-300 { color:#d1d5db; }
+    .dark .dark\:border-gray-700 { border-color:#374151; }
+    .dark .dark\:hover\:bg-gray-700:hover { background-color:#374151; }
+
+    /* Modal animación */
+    @keyframes fade-in-scale { from { transform: scale(.9); opacity:0; } to { transform: scale(1); opacity:1; } }
+    #calculator-modal.open, #rappicargo-modal.open { animation: fade-in-scale .2s ease-out forwards; }
+
+    /* ---- Estilos “Cierre pedidos” (mobile-first) ---- */
+    .tab-active { border-color:#3b82f6; color:#1e40af; background:#eff6ff; }
+    .co-badge { font-weight:700; font-size:.9rem; padding:.15rem .55rem; border-radius:999px; display:inline-block; }
+    .co-card { touch-action: manipulation; }
+    .co-btn { min-height:48px; }
+  </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-300 transition-colors">
 
-    <div id="app-container" class="p-0 sm:p-4">
-        
-        <!-- 1. Vista de Login/Registro -->
-        <div id="login-view">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center max-w-md mx-auto mt-10">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Control de Pedidos</h1>
-                <p class="text-gray-600 dark:text-gray-300 mb-6">Inicia sesión o regístrate para continuar.</p>
-                <form id="login-form" class="space-y-4">
-                    <input type="email" id="email-input" placeholder="Correo electrónico" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-                    <input type="password" id="password-input" placeholder="Contraseña" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-                    <div class="flex gap-2">
-                        <button type="submit" id="login-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition">Iniciar Sesión</button>
-                        <button type="button" id="register-btn" class="flex-1 bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500">Registrarse</button>
-                    </div>
-                </form>
+<div id="app-container" class="p-0 sm:p-4">
+
+  <!-- 1) Login/Registro -->
+  <div id="login-view">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center max-w-md mx-auto mt-10">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Control de Pedidos</h1>
+      <p class="text-gray-600 dark:text-gray-300 mb-6">Inicia sesión o regístrate para continuar.</p>
+      <form id="login-form" class="space-y-4">
+        <input type="email" id="email-input" placeholder="Correo electrónico" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required/>
+        <input type="password" id="password-input" placeholder="Contraseña" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required/>
+        <div class="flex gap-2">
+          <button type="submit" id="login-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition">Iniciar Sesión</button>
+          <button type="button" id="register-btn" class="flex-1 bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500">Registrarse</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2) Menú de roles -->
+  <div id="role-selection-view" class="hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center max-w-2xl mx-auto">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Selecciona tu Rol</h1>
+      <p id="welcome-email" class="text-gray-600 dark:text-gray-300 mb-8"></p>
+
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <button id="select-operator-btn" class="p-4 sm:p-6 bg-blue-50 dark:bg-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900 border-2 border-blue-200 dark:border-blue-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">⌨️</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Operador</h2>
+        </button>
+
+        <button id="select-viewer-btn" class="p-4 sm:p-6 bg-green-50 dark:bg-green-900/50 hover:bg-green-100 dark:hover:bg-green-900 border-2 border-green-200 dark:border-green-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">📺</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Visualizador</h2>
+        </button>
+
+        <button id="select-history-btn" class="p-4 sm:p-6 bg-purple-50 dark:bg-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-900 border-2 border-purple-200 dark:border-purple-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">📋</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Historial</h2>
+        </button>
+
+        <button id="select-settings-btn" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-500 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">⚙️</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Ajustes</h2>
+        </button>
+
+        <!-- Nuevo: Cierre pedidos -->
+        <button id="select-closeorders-btn" class="p-4 sm:p-6 bg-emerald-50 dark:bg-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-900 border-2 border-emerald-200 dark:border-emerald-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">✅</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Cierre pedidos</h2>
+        </button>
+      </div>
+
+      <button id="role-logout-btn" class="mt-8 text-sm text-gray-500 hover:underline">Cerrar Sesión</button>
+    </div>
+  </div>
+
+  <!-- 3) Vistas principales -->
+  <div id="main-view" class="hidden">
+
+    <!-- Operador -->
+    <div id="operator-view" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6 flex flex-col">
+          <div class="flex flex-wrap justify-between items-center mb-4 gap-y-2">
+            <h2 class="text-xl font-bold">Operador</h2>
+            <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
+              <button id="op-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
+              <button id="switch-to-viewer-btn" class="text-sm text-blue-600 hover:underline">Visualizador</button>
+              <button id="op-logout-btn" class="text-sm text-red-600 hover:underline">Salir</button>
             </div>
+          </div>
+
+          <div id="code-display" class="w-full text-center text-5xl font-mono tracking-widest px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg mb-4 h-20 flex items-center justify-center"></div>
+
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">1</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">2</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">3</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">4</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">5</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">6</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">7</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">8</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">9</button>
+            <button id="clear-btn" class="text-xl font-bold py-4 bg-red-200 dark:bg-red-800/50 rounded-lg hover:bg-red-300 dark:hover:bg-red-700/50">C</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">0</button>
+            <button id="backspace-btn" class="text-2xl font-bold py-4 bg-yellow-200 dark:bg-yellow-800/50 rounded-lg hover:bg-yellow-300 dark:hover:bg-yellow-700/50">⌫</button>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 mb-4">
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-red-600 text-white font-semibold" data-source="PedidosYa">PedidosYa</button>
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-sky-500 text-white font-semibold" data-source="Rappi">Rappi</button>
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-yellow-400 text-black font-semibold" data-source="MercadoPago">M. Pago</button>
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-orange-500 text-white font-semibold" data-source="RappiCargo">RappiCargo</button>
+          </div>
+
+          <button id="submit-code-btn" class="w-full bg-green-600 text-white font-bold py-4 rounded-lg hover:bg-green-700 mb-3">Guardar Pedido</button>
+          <!-- Botón calculadora: debajo del Guardar -->
+          <button id="open-calculator-btn" class="w-full bg-blue-600 text-white rounded-lg p-4 text-lg font-semibold hover:bg-blue-700 transition">Abrir calculadora 📟</button>
         </div>
 
-        <!-- 2. Vista de Selección de Rol (oculta) -->
-        <div id="role-selection-view" class="hidden">
-             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center max-w-2xl mx-auto">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Selecciona tu Rol</h1>
-                <p id="welcome-email" class="text-gray-600 dark:text-gray-300 mb-8"></p>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <button id="select-operator-btn" class="p-4 sm:p-6 bg-blue-50 dark:bg-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900 border-2 border-blue-200 dark:border-blue-800 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-4xl sm:text-5xl">⌨️</span>
-                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Operador</h2>
-                    </button>
-                    <button id="select-viewer-btn" class="p-4 sm:p-6 bg-green-50 dark:bg-green-900/50 hover:bg-green-100 dark:hover:bg-green-900 border-2 border-green-200 dark:border-green-800 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-4xl sm:text-5xl">📺</span>
-                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Visualizador</h2>
-                    </button>
-                    <button id="select-history-btn" class="p-4 sm:p-6 bg-purple-50 dark:bg-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-900 border-2 border-purple-200 dark:border-purple-800 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-4xl sm:text-5xl">📋</span>
-                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Historial</h2>
-                    </button>
-                    <button id="select-settings-btn" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-500 rounded-lg transition flex flex-col items-center justify-center">
-                        <span class="text-4xl sm:text-5xl">⚙️</span>
-                        <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Ajustes</h2>
-                    </button>
-                </div>
-                 <button id="role-logout-btn" class="mt-8 text-sm text-gray-500 hover:underline">Cerrar Sesión</button>
-            </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+          <h2 class="text-xl font-bold mb-4">Pedidos Activos</h2>
+          <div id="operator-code-list" class="space-y-2 h-[600px] overflow-y-auto pr-2"></div>
         </div>
-
-        <!-- 3. Vista Principal (oculta) -->
-        <div id="main-view" class="hidden">
-            <!-- Vistas de Operador, Visualizador, Historial y Ajustes -->
-            <div id="operator-view" class="hidden">
-                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6 flex flex-col">
-                        <div class="flex flex-wrap justify-between items-center mb-4 gap-y-2">
-                           <h2 class="text-xl font-bold">Operador</h2>
-                           <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
-                                <button id="op-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
-                                <button id="switch-to-viewer-btn" class="text-sm text-blue-600 hover:underline">Visualizador</button>
-                               <button id="op-logout-btn" class="text-sm text-red-600 hover:underline">Salir</button>
-                           </div>
-                        </div>
-                        <div id="code-display" class="w-full text-center text-5xl font-mono tracking-widest px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg mb-4 h-20 flex items-center justify-center"></div>
-                        <div class="grid grid-cols-3 gap-2 mb-4">
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">1</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">2</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">3</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">4</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">5</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">6</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">7</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">8</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">9</button>
-                            <button id="clear-btn" class="text-xl font-bold py-4 bg-red-200 dark:bg-red-800/50 rounded-lg hover:bg-red-300 dark:hover:bg-red-700/50">C</button>
-                            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">0</button>
-                            <button id="backspace-btn" class="text-2xl font-bold py-4 bg-yellow-200 dark:bg-yellow-800/50 rounded-lg hover:bg-yellow-300 dark:hover:bg-yellow-700/50">⌫</button>
-                        </div>
-                        <div class="grid grid-cols-4 gap-2 mb-4">
-                           <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-red-600 text-white font-semibold" data-source="PedidosYa">PedidosYa</button>
-                           <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-sky-500 text-white font-semibold" data-source="Rappi">Rappi</button>
-                           <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-yellow-400 text-black font-semibold" data-source="MercadoPago">M. Pago</button>
-                           <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-orange-500 text-white font-semibold" data-source="RappiCargo">RappiCargo</button>
-                        </div>
-                        <button id="submit-code-btn" class="w-full bg-green-600 text-white font-bold py-4 rounded-lg hover:bg-green-700">Guardar Pedido</button>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                        <h2 class="text-xl font-bold mb-4">Pedidos Activos</h2>
-                        <div id="operator-code-list" class="space-y-2 h-[600px] overflow-y-auto pr-2"></div>
-                    </div>
-                 </div>
-                 <button id="open-calculator-btn" class="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg text-3xl z-30 hover:bg-blue-700 transition">📟</button>
-            </div>
-            <div id="viewer-view" class="hidden flex flex-col h-screen relative">
-                 <div class="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-                     <img src="https://1000marcas.net/wp-content/uploads/2020/01/KFC-logo-600x338.png" class="w-1/2 h-1/2 object-contain opacity-10" alt="Marca de agua de KFC"/>
-                 </div>
-                 <div class="flex justify-between items-center mb-2 px-2 flex-shrink-0 relative z-10">
-                     <h1 class="text-2xl font-black text-gray-700">VISUALIZADOR DE PEDIDOS</h1>
-                     <div class="flex items-center gap-4">
-                        <button id="viewer-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
-                        <button id="switch-to-operator-btn" class="text-sm text-blue-600 hover:underline">Ver Operador</button>
-                        <button id="viewer-logout-btn" class="text-sm text-red-600 hover:underline">Cerrar Sesión</button>
-                     </div>
-                 </div>
-                 <div id="viewer-code-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-grow overflow-y-auto p-2 relative z-10"></div>
-                 <div id="viewer-footer-text" class="text-center font-bold flex-shrink-0 bg-gray-100 dark:bg-gray-900 relative z-10"></div>
-            </div>
-            <div id="history-view" class="hidden">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                    <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
-                        <div class="flex items-center gap-2">
-                            <input type="text" id="history-search-input" placeholder="Buscar por código..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                            <select id="history-filter-select" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                                <option value="all">Todos</option>
-                                <option value="PedidosYa">PedidosYa</option>
-                                <option value="Rappi">Rappi</option>
-                                <option value="RappiCargo">RappiCargo</option>
-                                <option value="MercadoPago">MercadoPago</option>
-                            </select>
-                        </div>
-                        <div class="flex gap-2">
-                            <button id="history-back-to-menu-btn" class="bg-gray-500 text-white font-semibold px-4 py-2 rounded-lg text-sm">Menú</button>
-                            <button id="export-pdf-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg text-sm">PDF</button>
-                            <button id="delete-history-btn" class="bg-red-600 text-white font-semibold px-4 py-2 rounded-lg text-sm">Borrar</button>
-                            <button id="history-logout-btn" class="text-sm text-gray-500 hover:underline">Salir</button>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table id="history-table" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3">Código/Nombre</th>
-                                    <th scope="col" class="px-6 py-3">Tipo</th>
-                                    <th scope="col" class="px-6 py-3">Creado</th>
-                                    <th scope="col" class="px-6 py-3">Completado</th>
-                                    <th scope="col" class="px-6 py-3">Duración</th>
-                                </tr>
-                            </thead>
-                            <tbody id="history-table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div id="settings-view" class="hidden">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 max-w-lg mx-auto">
-                    <h2 class="text-2xl font-bold mb-6 text-center">Configuración</h2>
-                    <div class="space-y-6">
-                        <div>
-                            <label for="blink-minutes-input" class="block mb-2 text-sm font-medium">Tiempo de alerta para parpadeo (minutos)</label>
-                            <input type="number" id="blink-minutes-input" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                        </div>
-                        <div>
-                            <label for="scroll-speed-input" class="block mb-2 text-sm font-medium">Velocidad de scroll (1: Lento, 5: Rápido)</label>
-                            <input type="range" id="scroll-speed-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                        </div>
-                        <div>
-                            <label for="viewer-size-input" class="block mb-2 text-sm font-medium">Tamaño en visualizador (1: Pequeño, 5: Muy Grande)</label>
-                            <input type="range" id="viewer-size-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                        </div>
-                        <div>
-                            <label for="calculator-size-input" class="block mb-2 text-sm font-medium">Tamaño de la calculadora (1: Pequeña, 5: Muy Grande)</label>
-                            <input type="range" id="calculator-size-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                        </div>
-                         <div>
-                            <label for="viewer-text-input" class="block mb-2 text-sm font-medium">Frase en el pie del visualizador</label>
-                            <input type="text" id="viewer-text-input" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                        </div>
-                        <div>
-                            <label for="viewer-footer-size-input" class="block mb-2 text-sm font-medium">Tamaño del texto inferior (1: Pequeño, 3: Grande)</label>
-                            <input type="range" id="viewer-footer-size-input" min="1" max="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                        </div>
-                    </div>
-                    <div class="flex justify-end gap-4 mt-8">
-                        <button id="settings-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Volver al Menú</button>
-                        <button id="save-settings-btn" class="bg-green-600 text-white font-semibold px-6 py-2 rounded-lg">Guardar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="notification-modal" class="hidden fixed top-5 right-5 bg-white border rounded-lg shadow-lg px-6 py-4 z-50 transition-transform duration-300 translate-x-full dark:bg-gray-700 dark:border-gray-600">
-            <p id="notification-message"></p>
-        </div>
-        <!-- Calculadora Flotante -->
-        <div id="calculator-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
-            <div id="calculator-modal" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform">
-                <div id="calc-expression-display" class="text-right text-gray-500 dark:text-gray-400 text-sm h-6 mb-1 truncate"></div>
-                <div id="calc-display" class="bg-gray-100 dark:bg-gray-900 text-right rounded p-2 mb-2 text-2xl font-mono">0</div>
-                <div id="calc-buttons" class="grid grid-cols-4 gap-2">
-                    <!-- Fila 1 -->
-                    <button class="calc-btn bg-red-500 text-white rounded p-2 text-lg">C</button>
-                    <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">/</button>
-                    <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">*</button>
-                    <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">-</button>
-                    <!-- Fila 2 -->
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">7</button>
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">8</button>
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">9</button>
-                    <button class="calc-btn bg-gray-200 dark:bg-gray-600 row-span-2 rounded p-2 text-lg">+</button>
-                    <!-- Fila 3 -->
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">4</button>
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">5</button>
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">6</button>
-                    <!-- Fila 4 -->
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">1</button>
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">2</button>
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">3</button>
-                    <button class="calc-btn bg-blue-500 text-white row-span-2 rounded p-2 text-lg">=</button>
-                    <!-- Fila 5 -->
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 col-span-2 rounded p-2 text-lg">0</button>
-                    <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">.</button>
-                </div>
-            </div>
-        </div>
-        <!-- Modal para RappiCargo -->
-        <div id="rappicargo-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
-            <div id="rappicargo-modal" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-sm">
-                <h3 class="text-lg font-bold mb-4">Ingresar Nombre para RappiCargo</h3>
-                <input type="text" id="rappicargo-name-input" placeholder="Nombre del cliente..." class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <div class="flex justify-end gap-2 mt-4">
-                    <button id="cancel-rappicargo-btn" class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">Cancelar</button>
-                    <button id="save-rappicargo-btn" class="bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600">Guardar</button>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Visualizador -->
+    <div id="viewer-view" class="hidden flex flex-col h-screen relative">
+      <div class="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
+        <img src="https://1000marcas.net/wp-content/uploads/2020/01/KFC-logo-600x338.png" class="w-1/2 h-1/2 object-contain opacity-10" alt="Marca de agua de KFC"/>
+      </div>
+      <div class="flex justify-between items-center mb-2 px-2 flex-shrink-0 relative z-10">
+        <h1 class="text-2xl font-black text-gray-700">VISUALIZADOR DE PEDIDOS</h1>
+        <div class="flex items-center gap-4">
+          <button id="viewer-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
+          <button id="switch-to-operator-btn" class="text-sm text-blue-600 hover:underline">Ver Operador</button>
+          <button id="viewer-logout-btn" class="text-sm text-red-600 hover:underline">Cerrar Sesión</button>
+        </div>
+      </div>
+      <div id="viewer-code-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-grow overflow-y-auto p-2 relative z-10"></div>
+      <div id="viewer-footer-text" class="text-center font-bold flex-shrink-0 bg-gray-100 dark:bg-gray-900 relative z-10"></div>
+    </div>
 
-        const { jsPDF } = window.jspdf;
+    <!-- Cierre pedidos -->
+    <div id="closeorders-view" class="hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <h2 class="text-xl font-black">Cierre de pedidos</h2>
+          <div class="flex items-center gap-2">
+            <button id="closeorders-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
+            <button id="closeorders-logout-btn" class="text-sm text-red-600 hover:underline">Salir</button>
+          </div>
+        </div>
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyBy67VQbcGPHMnNLoa7mZugUWiAc89Juvg",
-          authDomain: "vis-de-pedidos.firebaseapp.com",
-          projectId: "vis-de-pedidos",
-          storageBucket: "vis-de-pedidos.appspot.com",
-          messagingSenderId: "302899841975",
-          appId: "1:302899841975:web:e35f1d730dece0cab53632",
-          measurementId: "G-2YDJHXG8E2"
+        <!-- Filtros táctiles -->
+        <div class="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <button class="co-filter tab-active px-3 py-2 rounded-lg text-sm font-semibold border" data-filter="all">Todos</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-red-300 text-red-700 bg-red-50 dark:bg-red-900/20" data-filter="PedidosYa">PedidosYa</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-orange-300 text-orange-700 bg-orange-50 dark:bg-orange-900/20" data-filter="Rappi">Rappi</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-sky-300 text-sky-700 bg-sky-50 dark:bg-sky-900/20" data-filter="RappiCargo">RappiCargo</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-green-300 text-green-700 bg-green-50 dark:bg-green-900/20" data-filter="MercadoPago">MercadoPago</button>
+        </div>
+
+        <!-- Grupos por tipo (sin “Finalizar todos”) -->
+        <div id="closeorders-groups" class="mt-4 space-y-4"></div>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div id="history-view" class="hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+          <div class="flex items-center gap-2">
+            <input type="text" id="history-search-input" placeholder="Buscar por código..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <select id="history-filter-select" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+              <option value="all">Todos</option>
+              <option value="PedidosYa">PedidosYa</option>
+              <option value="Rappi">Rappi</option>
+              <option value="RappiCargo">RappiCargo</option>
+              <option value="MercadoPago">MercadoPago</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button id="history-back-to-menu-btn" class="bg-gray-500 text-white font-semibold px-4 py-2 rounded-lg text-sm">Menú</button>
+            <button id="export-pdf-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg text-sm">PDF</button>
+            <button id="delete-history-btn" class="bg-red-600 text-white font-semibold px-4 py-2 rounded-lg text-sm">Borrar</button>
+            <button id="history-logout-btn" class="text-sm text-gray-500 hover:underline">Salir</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table id="history-table" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" class="px-6 py-3">Código/Nombre</th>
+                <th scope="col" class="px-6 py-3">Tipo</th>
+                <th scope="col" class="px-6 py-3">Creado</th>
+                <th scope="col" class="px-6 py-3">Completado</th>
+                <th scope="col" class="px-6 py-3">Duración</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ajustes -->
+    <div id="settings-view" class="hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 max-w-lg mx-auto">
+        <h2 class="text-2xl font-bold mb-6 text-center">Configuración</h2>
+        <div class="space-y-6">
+          <div>
+            <label for="blink-minutes-input" class="block mb-2 text-sm font-medium">Tiempo de alerta para parpadeo (minutos)</label>
+            <input type="number" id="blink-minutes-input" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+          </div>
+          <div>
+            <label for="scroll-speed-input" class="block mb-2 text-sm font-medium">Velocidad de scroll (1: Lento, 5: Rápido)</label>
+            <input type="range" id="scroll-speed-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+          </div>
+          <div>
+            <label for="viewer-size-input" class="block mb-2 text-sm font-medium">Tamaño en visualizador (1: Pequeño, 5: Muy Grande)</label>
+            <input type="range" id="viewer-size-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+          </div>
+          <div>
+            <label for="calculator-size-input" class="block mb-2 text-sm font-medium">Tamaño de la calculadora (1: Pequeña, 5: Muy Grande)</label>
+            <input type="range" id="calculator-size-input" min="1" max="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+          </div>
+          <div>
+            <label for="viewer-text-input" class="block mb-2 text-sm font-medium">Frase en el pie del visualizador</label>
+            <input type="text" id="viewer-text-input" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+          </div>
+          <div>
+            <label for="viewer-footer-size-input" class="block mb-2 text-sm font-medium">Tamaño del texto inferior (1: Pequeño, 3: Grande)</label>
+            <input type="range" id="viewer-footer-size-input" min="1" max="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+          </div>
+        </div>
+        <div class="flex justify-end gap-4 mt-8">
+          <button id="settings-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Volver al Menú</button>
+          <button id="save-settings-btn" class="bg-green-600 text-white font-semibold px-6 py-2 rounded-lg">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificaciones -->
+  <div id="notification-modal" class="hidden fixed top-5 right-5 bg-white border rounded-lg shadow-lg px-6 py-4 z-50 transition-transform duration-300 translate-x-full dark:bg-gray-700 dark:border-gray-600">
+    <p id="notification-message"></p>
+  </div>
+
+  <!-- Calculadora -->
+  <div id="calculator-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+    <div id="calculator-modal" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform">
+      <div id="calc-expression-display" class="text-right text-gray-500 dark:text-gray-400 text-sm h-6 mb-1 truncate"></div>
+      <div id="calc-display" class="bg-gray-100 dark:bg-gray-900 text-right rounded p-2 mb-2 text-2xl font-mono">0</div>
+      <div id="calc-buttons" class="grid grid-cols-4 gap-2">
+        <button class="calc-btn bg-red-500 text-white rounded p-2 text-lg">C</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">/</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">*</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">-</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">7</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">8</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">9</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 row-span-2 rounded p-2 text-lg">+</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">4</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">5</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">6</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">1</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">2</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">3</button>
+        <button class="calc-btn bg-blue-500 text-white row-span-2 rounded p-2 text-lg">=</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 col-span-2 rounded p-2 text-lg">0</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">.</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal RappiCargo (nombre) -->
+  <div id="rappicargo-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+    <div id="rappicargo-modal" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-sm">
+      <h3 class="text-lg font-bold mb-4">Ingresar Nombre para RappiCargo</h3>
+      <input type="text" id="rappicargo-name-input" placeholder="Nombre del cliente..." class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+      <div class="flex justify-end gap-2 mt-4">
+        <button id="cancel-rappicargo-btn" class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">Cancelar</button>
+        <button id="save-rappicargo-btn" class="bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  const { jsPDF } = window.jspdf;
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBy67VQbcGPHMnNLoa7mZugUWiAc89Juvg",
+    authDomain: "vis-de-pedidos.firebaseapp.com",
+    projectId: "vis-de-pedidos",
+    storageBucket: "vis-de-pedidos.appspot.com",
+    messagingSenderId: "302899841975",
+    appId: "1:302899841975:web:e35f1d730dece0cab53632",
+    measurementId: "G-2YDJHXG8E2"
+  };
+
+  let app, auth, db;
+  let unsubscribeFromCodes = null;
+  let sessionData = { codes: [], history: [], settings: {} };
+  let currentSource = null;
+  let notificationTimeout;
+  let scrollInterval = null;
+  let scrollPauseTimeout = null;
+  let oldOrdersInterval = null;
+  let previousCodesCount = 0;
+  let userSettings = {
+    blinkMinutes: 5,
+    scrollSpeed: 3,
+    viewerSize: 3,
+    calculatorSize: 3,
+    viewerFooterText: "⬅️ para retirar",
+    viewerFooterSize: 3,
+  };
+
+  const loginView = document.getElementById('login-view');
+  const roleSelectionView = document.getElementById('role-selection-view');
+  const mainView = document.getElementById('main-view');
+
+  const operatorView = document.getElementById('operator-view');
+  const viewerView = document.getElementById('viewer-view');
+  const closeOrdersView = document.getElementById('closeorders-view');
+  const historyView = document.getElementById('history-view');
+  const settingsView = document.getElementById('settings-view');
+
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (e) { showNotification("Error de configuración de Firebase.", "error"); }
+
+  function showView(viewToShow) {
+    [loginView, roleSelectionView, mainView].forEach(v => v.classList.add('hidden'));
+    viewToShow.classList.remove('hidden');
+  }
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      const savedRole = localStorage.getItem('userRole');
+      if (savedRole) {
+        setupRoleView(savedRole);
+      } else {
+        document.getElementById('welcome-email').textContent = `Sesión iniciada como: ${user.email}`;
+        showView(roleSelectionView);
+      }
+      listenForCodes(user.uid);
+    } else {
+      if (unsubscribeFromCodes) unsubscribeFromCodes();
+      if (oldOrdersInterval) clearInterval(oldOrdersInterval);
+      localStorage.removeItem('userRole');
+      previousCodesCount = 0;
+      document.documentElement.classList.remove('dark');
+      showView(loginView);
+    }
+  });
+
+  async function handleAuth(action, email, password) {
+    try {
+      if (action === 'register') await createUserWithEmailAndPassword(auth, email, password);
+      else await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) { handleAuthError(error); }
+  }
+
+  document.getElementById('login-form').addEventListener('submit', e => {
+    e.preventDefault();
+    handleAuth('login', document.getElementById('email-input').value, document.getElementById('password-input').value);
+  });
+  document.getElementById('register-btn').addEventListener('click', () => {
+    handleAuth('register', document.getElementById('email-input').value, document.getElementById('password-input').value);
+  });
+
+  function setupRoleView(role) {
+    localStorage.setItem('userRole', role);
+    showView(mainView);
+    operatorView.classList.toggle('hidden', role !== 'operator');
+    viewerView.classList.toggle('hidden', role !== 'viewer');
+    closeOrdersView.classList.toggle('hidden', role !== 'closeorders');
+    historyView.classList.toggle('hidden', role !== 'history');
+    settingsView.classList.toggle('hidden', role !== 'settings');
+
+    if (role === 'settings') populateSettingsForm();
+
+    if (role === 'viewer') {
+      document.documentElement.classList.remove('dark');
+      updateViewerAutoScroll();
+    } else {
+      if (scrollInterval) {
+        clearInterval(scrollInterval);
+        clearTimeout(scrollPauseTimeout);
+        scrollInterval = null;
+      }
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    }
+
+    if (role === 'closeorders') {
+      renderCloseOrders(activeFilter);
+    }
+  }
+
+  // Botones menú roles
+  document.getElementById('select-operator-btn').addEventListener('click', () => setupRoleView('operator'));
+  document.getElementById('select-viewer-btn').addEventListener('click', () => setupRoleView('viewer'));
+  document.getElementById('select-history-btn').addEventListener('click', () => setupRoleView('history'));
+  document.getElementById('select-settings-btn').addEventListener('click', () => setupRoleView('settings'));
+  document.getElementById('select-closeorders-btn').addEventListener('click', () => setupRoleView('closeorders'));
+
+  async function handleLogout() {
+    const userId = auth.currentUser?.uid;
+    if (userId && localStorage.getItem('userRole') === 'operator') {
+      const sessionDocRef = doc(db, "sessions", userId);
+      await updateDoc(sessionDocRef, { codes: [] });
+    }
+    signOut(auth);
+  }
+
+  [
+    document.getElementById('role-logout-btn'),
+    document.getElementById('op-logout-btn'),
+    document.getElementById('viewer-logout-btn'),
+    document.getElementById('history-logout-btn'),
+    document.getElementById('closeorders-logout-btn')
+  ].forEach(btn => { btn.addEventListener('click', handleLogout); });
+
+  function listenForCodes(userId) {
+    if (unsubscribeFromCodes) unsubscribeFromCodes();
+    const sessionDocRef = doc(db, "sessions", userId);
+
+    getDoc(sessionDocRef).then(docSnap => {
+      if (!docSnap.exists()) {
+        setDoc(sessionDocRef, { createdAt: serverTimestamp(), codes: [], history: [], settings: userSettings });
+      }
+    });
+
+    unsubscribeFromCodes = onSnapshot(sessionDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        sessionData = docSnap.data();
+        sessionData.codes = sessionData.codes || [];
+        sessionData.history = sessionData.history || [];
+        userSettings = { ...userSettings, ...sessionData.settings };
+
+        const isNewCode = sessionData.codes.length > previousCodesCount;
+        previousCodesCount = sessionData.codes.length;
+
+        const operatorCodes = [...sessionData.codes].sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+        const viewerCodes = [...sessionData.codes].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+        sessionData.history.sort((a, b) => (b.deletedAt?.seconds || 0) - (a.deletedAt?.seconds || 0));
+
+        renderOperatorList(operatorCodes);
+        renderViewerList(viewerCodes, isNewCode);
+        filterAndRenderHistory();
+        if (!closeOrdersView.classList.contains('hidden')) renderCloseOrders(activeFilter);
+      }
+    });
+  }
+
+  // === Antiduplicados ===
+  function isDuplicate(code, source) {
+    if (!code || !source) return false;
+    const normalized = String(code).trim();
+    return (sessionData.codes || []).some(c => String(c.code).trim() === normalized && c.source === source);
+  }
+
+  async function addCode(code, source, type = 'code') {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    const codeTrim = String(code).trim();
+    if (!codeTrim || !source) {
+      showNotification("Ingresa un código y selecciona un origen", "error");
+      return;
+    }
+
+    if (isDuplicate(codeTrim, source)) {
+      showNotification("Este pedido ya fue ingresado", "error");
+      return;
+    }
+
+    const newCode = { id: crypto.randomUUID(), code: codeTrim, source, timestamp: new Date(), type };
+    const sessionDocRef = doc(db, "sessions", userId);
+    await updateDoc(sessionDocRef, { codes: [newCode, ...sessionData.codes] });
+  }
+
+  async function deleteCode(codeId) {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+    const codeToMove = sessionData.codes.find(c => c.id === codeId);
+    if (!codeToMove) return;
+
+    codeToMove.deletedAt = new Date();
+    const newCodesArray = sessionData.codes.filter(c => c.id !== codeId);
+    const newHistoryArray = [codeToMove, ...sessionData.history];
+
+    const sessionDocRef = doc(db, "sessions", userId);
+    await updateDoc(sessionDocRef, { codes: newCodesArray, history: newHistoryArray });
+  }
+
+  async function completeCode(codeId) {
+    await deleteCode(codeId);
+    showNotification('Pedido marcado como FINALIZADO.');
+  }
+
+  function renderOperatorList(codes) {
+    const listEl = document.getElementById('operator-code-list');
+    listEl.innerHTML = '';
+    if (oldOrdersInterval) clearInterval(oldOrdersInterval);
+
+    if (codes.length === 0) {
+      listEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-center mt-16">No hay pedidos activos.</p>`;
+      return;
+    }
+    const now = Date.now();
+    const alertTime = userSettings.blinkMinutes * 60 * 1000;
+
+    codes.forEach(c => {
+      const isOld = c.timestamp?.toDate && (now - c.timestamp.toDate().getTime() > alertTime);
+      const sourceStyles = {
+        'PedidosYa': 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300',
+        'Rappi': 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300',
+        'RappiCargo': 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300',
+        'MercadoPago': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300'
+      };
+      const style = sourceStyles[c.source] || 'bg-gray-100';
+      const blinkingClass = isOld ? 'blinking-border' : '';
+
+      listEl.innerHTML += `
+        <div class="flex items-center justify-between p-3 ${style} rounded-lg ${blinkingClass}">
+          <div class="flex flex-col">
+            <span class="font-mono text-2xl tracking-wider font-bold">${c.code}</span>
+            <span class="text-xs font-semibold">${c.source}</span>
+          </div>
+          <button data-id="${c.id}" class="delete-btn ml-auto p-2 rounded-full hover:bg-red-200 dark:hover:bg-red-800/50" title="Mover a historial">
+            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>`;
+    });
+
+    oldOrdersInterval = setInterval(() => renderOperatorList(sessionData.codes), 60000);
+  }
+
+  function renderViewerList(codes, isNewCode) {
+    const listEl = document.getElementById('viewer-code-list');
+    listEl.innerHTML = '';
+    if (codes.length === 0) {
+      listEl.innerHTML = `<p class="viewer-no-codes text-gray-500 text-center mt-32 text-2xl col-span-full">Esperando pedidos...</p>`;
+      updateViewerAutoScroll();
+      return;
+    }
+
+    const sourceStyles = {
+      'PedidosYa': 'bg-red-600 text-white',
+      'Rappi': 'bg-sky-500 text-white',
+      'RappiCargo': 'bg-sky-500 text-white',
+      'MercadoPago': 'bg-yellow-400 text-black'
+    };
+    const sizeClasses = ['text-5xl md:text-6xl', 'text-6xl md:text-7xl', 'text-7xl md:text-8xl', 'text-8xl', 'text-8xl lg:text-9xl'];
+
+    codes.forEach((c, index) => {
+      let sizeClass = sizeClasses[userSettings.viewerSize - 1] || sizeClasses[2];
+      if (c.type === 'name') sizeClass = 'text-4xl md:text-5xl';
+
+      const displaySource = c.source === 'RappiCargo' ? 'Rappi' : c.source;
+      const style = sourceStyles[c.source] || 'bg-gray-200';
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-xl shadow-lg p-4 flex flex-col items-center justify-center aspect-video';
+      if (index === 0 && isNewCode) card.classList.add('new-order-pop');
+      card.innerHTML = `
+        <p class="font-black text-gray-900 ${sizeClass} tracking-tighter">${c.code}</p>
+        <div class="mt-4 px-6 py-2 rounded-lg ${style}"><p class="font-bold text-xl">${displaySource}</p></div>`;
+      listEl.appendChild(card);
+    });
+
+    const footerTextEl = document.getElementById('viewer-footer-text');
+    footerTextEl.textContent = userSettings.viewerFooterText;
+    const footerSizeClasses = ['text-xl py-3', 'text-2xl py-4', 'text-3xl py-5'];
+    footerTextEl.className = `text-center font-bold flex-shrink-0 bg-gray-100 dark:bg-gray-900 ${footerSizeClasses[userSettings.viewerFooterSize - 1] || footerSizeClasses[1]}`;
+
+    updateViewerAutoScroll();
+  }
+
+  function updateViewerAutoScroll() {
+    const listEl = document.getElementById('viewer-code-list');
+    if (scrollInterval) clearInterval(scrollInterval);
+    if (scrollPauseTimeout) clearTimeout(scrollPauseTimeout);
+    scrollInterval = null;
+
+    if (viewerView.classList.contains('hidden')) return;
+
+    setTimeout(() => {
+      const hasOverflow = listEl.scrollHeight > listEl.clientHeight;
+      if (hasOverflow) {
+        let direction = 1;
+        let paused = true;
+        const speeds = [50, 40, 30, 20, 10];
+        const scrollSpeedMs = speeds[userSettings.scrollSpeed - 1] || 30;
+        const startScrollCycle = () => {
+          scrollPauseTimeout = setTimeout(() => {
+            paused = false;
+            scrollInterval = setInterval(() => {
+              if (paused) return;
+              listEl.scrollBy(0, direction);
+              const atBottom = listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 1;
+              const atTop = listEl.scrollTop <= 0;
+              if ((direction === 1 && atBottom) || (direction === -1 && atTop)) {
+                paused = true;
+                direction *= -1;
+                clearInterval(scrollInterval);
+                startScrollCycle();
+              }
+            }, scrollSpeedMs);
+          }, 3000);
         };
+        startScrollCycle();
+      }
+    }, 500);
+  }
 
-        let app, auth, db;
-        let unsubscribeFromCodes = null;
-        let sessionData = { codes: [], history: [], settings: {} };
-        let currentSource = null;
-        let notificationTimeout;
-        let scrollInterval = null;
-        let scrollPauseTimeout = null;
-        let oldOrdersInterval = null;
-        let previousCodesCount = 0;
-        let userSettings = {
-            blinkMinutes: 5,
-            scrollSpeed: 3, // 1-5
-            viewerSize: 3,  // 1-5
-            calculatorSize: 3, // 1-5
-            viewerFooterText: "⬅️ para retirar",
-            viewerFooterSize: 3, // 1-3
-        };
+  function renderHistoryList(history) {
+    const tableBody = document.getElementById('history-table-body');
+    tableBody.innerHTML = '';
+    if (history.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-8">No hay historial de pedidos.</td></tr>`;
+      return;
+    }
+    history.forEach(c => {
+      const created = c.timestamp?.toDate ? c.timestamp.toDate() : null;
+      const deleted = c.deletedAt?.toDate ? c.deletedAt.toDate() : null;
+      let duration = 'N/A';
+      if (created && deleted) {
+        const diffMs = deleted - created;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffSecs = Math.floor((diffMs % 60000) / 1000);
+        duration = `${diffMins} min, ${diffSecs} seg`;
+      }
 
-        const loginView = document.getElementById('login-view');
-        const roleSelectionView = document.getElementById('role-selection-view');
-        const mainView = document.getElementById('main-view');
-        const operatorView = document.getElementById('operator-view');
-        const viewerView = document.getElementById('viewer-view');
-        const historyView = document.getElementById('history-view');
-        const settingsView = document.getElementById('settings-view');
+      tableBody.innerHTML += `
+        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">${c.code}</th>
+          <td class="px-6 py-4">${c.source}</td>
+          <td class="px-6 py-4">${created ? created.toLocaleString() : 'N/A'}</td>
+          <td class="px-6 py-4">${deleted ? deleted.toLocaleString() : 'N/A'}</td>
+          <td class="px-6 py-4">${duration}</td>
+        </tr>`;
+    });
+  }
 
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) { showNotification("Error de configuración de Firebase.", "error"); }
+  function filterAndRenderHistory() {
+    const searchTerm = document.getElementById('history-search-input').value.toLowerCase();
+    const filterValue = document.getElementById('history-filter-select').value;
 
-        function showView(viewToShow) {
-            [loginView, roleSelectionView, mainView].forEach(v => v.classList.add('hidden'));
-            viewToShow.classList.remove('hidden');
-        }
+    const filteredHistory = (sessionData.history || []).filter(item => {
+      const codeMatch = String(item.code).toLowerCase().includes(searchTerm);
+      const filterMatch = filterValue === 'all' || item.source === filterValue;
+      return codeMatch && filterMatch;
+    });
+    renderHistoryList(filteredHistory);
+  }
 
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                const savedRole = localStorage.getItem('userRole');
-                if (savedRole) {
-                    setupRoleView(savedRole);
-                } else {
-                    document.getElementById('welcome-email').textContent = `Sesión iniciada como: ${user.email}`;
-                    showView(roleSelectionView);
-                }
-                listenForCodes(user.uid);
-            } else {
-                if (unsubscribeFromCodes) unsubscribeFromCodes();
-                if (oldOrdersInterval) clearInterval(oldOrdersInterval);
-                localStorage.removeItem('userRole');
-                previousCodesCount = 0;
-                document.documentElement.classList.remove('dark');
-                showView(loginView);
-            }
-        });
+  // ====== Cierre pedidos (agrupado, sin "Finalizar todos") ======
+  const closeGroupsEl = document.getElementById('closeorders-groups');
+  let activeFilter = 'all';
 
-        async function handleAuth(action, email, password) {
-            try {
-                if (action === 'register') {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                }
-            } catch (error) { handleAuthError(error); }
-        }
+  function getSourceStyles(source) {
+    const map = {
+      'PedidosYa': { badge:'bg-red-600 text-white', border:'border-red-300', light:'bg-red-50 dark:bg-red-900/20' },
+      'Rappi': { badge:'bg-orange-500 text-white', border:'border-orange-300', light:'bg-orange-50 dark:bg-orange-900/20' },
+      'RappiCargo': { badge:'bg-sky-500 text-white', border:'border-sky-300', light:'bg-sky-50 dark:bg-sky-900/20' },
+      'MercadoPago': { badge:'bg-green-500 text-white', border:'border-green-300', light:'bg-green-50 dark:bg-green-900/20' }
+    };
+    return map[source] || { badge:'bg-gray-500 text-white', border:'border-gray-300', light:'bg-gray-50 dark:bg-gray-800' };
+  }
 
-        document.getElementById('login-form').addEventListener('submit', e => {
-            e.preventDefault();
-            handleAuth('login', document.getElementById('email-input').value, document.getElementById('password-input').value);
-        });
+  function groupBySource(codes) {
+    return (codes || []).reduce((acc, c) => {
+      const key = c.source || 'Otros';
+      (acc[key] = acc[key] || []).push(c);
+      return acc;
+    }, {});
+  }
 
-        document.getElementById('register-btn').addEventListener('click', () => {
-            handleAuth('register', document.getElementById('email-input').value, document.getElementById('password-input').value);
-        });
+  function renderCloseOrders(filter='all') {
+    if (!closeGroupsEl) return;
+    const grouped = groupBySource(sessionData.codes || []);
+    const order = ['PedidosYa','Rappi','RappiCargo','MercadoPago'];
+    const keys = Object.keys(grouped).sort((a,b) => {
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
 
-        function setupRoleView(role) {
-            localStorage.setItem('userRole', role);
-            showView(mainView);
-            operatorView.classList.toggle('hidden', role !== 'operator');
-            viewerView.classList.toggle('hidden', role !== 'viewer');
-            historyView.classList.toggle('hidden', role !== 'history');
-            settingsView.classList.toggle('hidden', role !== 'settings');
+    closeGroupsEl.innerHTML = '';
+    let renderedAny = false;
 
-            if (role === 'settings') {
-                populateSettingsForm();
-            }
+    keys.forEach(source => {
+      const items = grouped[source] || [];
+      if (!items.length) return;
+      if (filter !== 'all' && filter !== source) return;
 
-            if (role === 'viewer') {
-                document.documentElement.classList.remove('dark');
-                updateViewerAutoScroll();
-            } else {
-                if (scrollInterval) {
-                    clearInterval(scrollInterval);
-                    clearTimeout(scrollPauseTimeout);
-                    scrollInterval = null;
-                }
-                if (localStorage.getItem('theme') === 'dark') {
-                    document.documentElement.classList.add('dark');
-                }
-            }
-        }
+      renderedAny = true;
+      const st = getSourceStyles(source);
+      const wrap = document.createElement('div');
+      wrap.className = `rounded-xl border ${st.border} ${st.light} p-3 sm:p-4`;
 
-        document.getElementById('select-operator-btn').addEventListener('click', () => setupRoleView('operator'));
-        document.getElementById('select-viewer-btn').addEventListener('click', () => setupRoleView('viewer'));
-        document.getElementById('select-history-btn').addEventListener('click', () => setupRoleView('history'));
-        document.getElementById('select-settings-btn').addEventListener('click', () => setupRoleView('settings'));
-        
-        async function handleLogout() {
-            const userId = auth.currentUser?.uid;
-            if (userId && localStorage.getItem('userRole') === 'operator') {
-                const sessionDocRef = doc(db, "sessions", userId);
-                await updateDoc(sessionDocRef, { codes: [] });
-            }
-            signOut(auth);
-        }
+      const sorted = items.slice().sort((a,b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
 
-        [document.getElementById('role-logout-btn'), document.getElementById('op-logout-btn'), document.getElementById('viewer-logout-btn'), document.getElementById('history-logout-btn')].forEach(btn => {
-            btn.addEventListener('click', handleLogout);
-        });
+      wrap.innerHTML = `
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="flex items-center gap-2">
+            <span class="co-badge ${st.badge}">${source}</span>
+            <span class="text-sm font-semibold opacity-80">${sorted.length} activo${sorted.length!==1?'s':''}</span>
+          </div>
+        </div>
 
-        function listenForCodes(userId) {
-            if (unsubscribeFromCodes) unsubscribeFromCodes();
-            const sessionDocRef = doc(db, "sessions", userId);
-            
-            getDoc(sessionDocRef).then(docSnap => {
-                if (!docSnap.exists()) {
-                    setDoc(sessionDocRef, { createdAt: serverTimestamp(), codes: [], history: [], settings: userSettings });
-                }
-            });
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          ${sorted.map(i => `
+            <div class="co-card bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-lg p-4 flex items-center justify-between">
+              <div class="min-w-0">
+                <p class="font-black text-2xl tracking-tight truncate">${i.code}</p>
+                <p class="text-xs text-gray-500">${i.type === 'name' ? 'Nombre' : 'Código'} • ${new Date((i.timestamp?.seconds||0)*1000).toLocaleTimeString()}</p>
+              </div>
+              <button class="finish-item bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm co-btn" data-id="${i.id}">
+                Finalizar
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      closeGroupsEl.appendChild(wrap);
+    });
 
-            unsubscribeFromCodes = onSnapshot(sessionDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    sessionData = docSnap.data();
-                    sessionData.codes = sessionData.codes || [];
-                    sessionData.history = sessionData.history || [];
-                    userSettings = { ...userSettings, ...sessionData.settings };
-                    
-                    const isNewCode = sessionData.codes.length > previousCodesCount;
-                    previousCodesCount = sessionData.codes.length;
-                    
-                    const operatorCodes = [...sessionData.codes].sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
-                    const viewerCodes = [...sessionData.codes].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-                    sessionData.history.sort((a, b) => (b.deletedAt?.seconds || 0) - (a.deletedAt?.seconds || 0));
+    if (!renderedAny) {
+      closeGroupsEl.innerHTML = `<p class="text-gray-500 text-center py-12">No hay pedidos activos.</p>`;
+    }
+  }
 
-                    renderOperatorList(operatorCodes);
-                    renderViewerList(viewerCodes, isNewCode);
-                    filterAndRenderHistory();
-                }
-            });
-        }
+  // Filtros táctiles (Cierre pedidos)
+  document.querySelectorAll('.co-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.co-filter').forEach(b => b.classList.remove('tab-active'));
+      btn.classList.add('tab-active');
+      activeFilter = btn.dataset.filter || 'all';
+      renderCloseOrders(activeFilter);
+    });
+  });
 
-        async function addCode(code, source, type = 'code') {
-            const userId = auth.currentUser?.uid;
-            if (!userId) return;
-            const newCode = { id: crypto.randomUUID(), code, source, timestamp: new Date(), type };
-            const sessionDocRef = doc(db, "sessions", userId);
-            await updateDoc(sessionDocRef, { codes: [newCode, ...sessionData.codes] });
-        }
+  // Acciones por tarjeta (Finalizar)
+  if (closeGroupsEl) {
+    closeGroupsEl.addEventListener('click', (e) => {
+      const finishBtn = e.target.closest('.finish-item');
+      if (finishBtn) {
+        const id = finishBtn.dataset.id;
+        if (id) completeCode(id);
+      }
+    });
+  }
 
-        async function deleteCode(codeId) {
-            const userId = auth.currentUser?.uid;
-            if (!userId) return;
-            const codeToMove = sessionData.codes.find(c => c.id === codeId);
-            if (!codeToMove) return;
+  // Navegación común
+  function backToMenu() { localStorage.removeItem('userRole'); showView(roleSelectionView); }
+  document.getElementById('op-back-to-menu-btn').addEventListener('click', backToMenu);
+  document.getElementById('viewer-back-to-menu-btn').addEventListener('click', backToMenu);
+  document.getElementById('history-back-to-menu-btn').addEventListener('click', backToMenu);
+  document.getElementById('settings-back-to-menu-btn').addEventListener('click', backToMenu);
+  document.getElementById('closeorders-back-to-menu-btn').addEventListener('click', backToMenu);
 
-            codeToMove.deletedAt = new Date();
-            const newCodesArray = sessionData.codes.filter(c => c.id !== codeId);
-            const newHistoryArray = [codeToMove, ...sessionData.history];
-            
-            const sessionDocRef = doc(db, "sessions", userId);
-            await updateDoc(sessionDocRef, { codes: newCodesArray, history: newHistoryArray });
-        }
-        
-        function renderOperatorList(codes) {
-            const listEl = document.getElementById('operator-code-list');
-            listEl.innerHTML = '';
-            if (oldOrdersInterval) clearInterval(oldOrdersInterval);
+  // Operador: Teclado y envío
+  document.querySelectorAll('.keypad-btn').forEach(btn => btn.addEventListener('click', () => {
+    const display = document.getElementById('code-display');
+    if (display.textContent.length < 4) display.textContent += btn.textContent;
+  }));
+  document.getElementById('clear-btn').addEventListener('click', () => document.getElementById('code-display').textContent = '');
+  document.getElementById('backspace-btn').addEventListener('click', () => {
+    const display = document.getElementById('code-display');
+    display.textContent = display.textContent.slice(0, -1);
+  });
+  document.querySelectorAll('.source-btn').forEach(btn => btn.addEventListener('click', () => {
+    const source = btn.dataset.source;
+    if (source === 'RappiCargo') {
+      document.getElementById('rappicargo-overlay').classList.remove('hidden');
+      document.getElementById('rappicargo-modal').classList.add('open');
+    } else {
+      document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSource = source;
+    }
+  }));
+  document.getElementById('submit-code-btn').addEventListener('click', () => {
+    const code = document.getElementById('code-display').textContent;
+    if (code && currentSource) {
+      addCode(code, currentSource);
+      document.getElementById('code-display').textContent = '';
+      document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+      currentSource = null;
+    } else { showNotification("Ingresa un código y selecciona un origen", "error"); }
+  });
+  document.getElementById('operator-code-list').addEventListener('click', e => {
+    const deleteBtn = e.target.closest('.delete-btn');
+    if (deleteBtn) deleteCode(deleteBtn.dataset.id);
+  });
 
-            if (codes.length === 0) {
-                listEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-center mt-16">No hay pedidos activos.</p>`;
-                return;
-            }
-            const now = Date.now();
-            const alertTime = userSettings.blinkMinutes * 60 * 1000;
+  // Historial
+  document.getElementById('history-search-input').addEventListener('input', filterAndRenderHistory);
+  document.getElementById('history-filter-select').addEventListener('change', filterAndRenderHistory);
+  document.getElementById('export-pdf-btn').addEventListener('click', () => {
+    const doc = new jsPDF();
+    doc.autoTable({ html: '#history-table' });
+    doc.save('historial-pedidos.pdf');
+  });
+  document.getElementById('delete-history-btn').addEventListener('click', async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+    if (confirm("¿Borrar todo el historial? Esta acción no se puede deshacer.")) {
+      const sessionDocRef = doc(db, "sessions", userId);
+      await updateDoc(sessionDocRef, { history: [] });
+      showNotification("Historial borrado correctamente.");
+    }
+  });
 
-            codes.forEach(c => {
-                const isOld = c.timestamp?.toDate && (now - c.timestamp.toDate().getTime() > alertTime);
-                const sourceStyles = { 'PedidosYa': 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300', 'Rappi': 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300', 'RappiCargo': 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300', 'MercadoPago': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' };
-                const style = sourceStyles[c.source] || 'bg-gray-100';
-                const blinkingClass = isOld ? 'blinking-border' : '';
-                
-                listEl.innerHTML += `
-                    <div class="flex items-center justify-between p-3 ${style} rounded-lg ${blinkingClass}">
-                        <div class="flex flex-col">
-                            <span class="font-mono text-2xl tracking-wider font-bold">${c.code}</span>
-                            <span class="text-xs font-semibold">${c.source}</span>
-                        </div>
-                        <button data-id="${c.id}" class="delete-btn ml-auto p-2 rounded-full hover:bg-red-200 dark:hover:bg-red-800/50">
-                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                    </div>`;
-            });
+  // Ajustes
+  function populateSettingsForm() {
+    document.getElementById('blink-minutes-input').value = userSettings.blinkMinutes;
+    document.getElementById('scroll-speed-input').value = userSettings.scrollSpeed;
+    document.getElementById('viewer-size-input').value = userSettings.viewerSize;
+    document.getElementById('calculator-size-input').value = userSettings.calculatorSize;
+    document.getElementById('viewer-text-input').value = userSettings.viewerFooterText;
+    document.getElementById('viewer-footer-size-input').value = userSettings.viewerFooterSize;
+  }
+  document.getElementById('save-settings-btn').addEventListener('click', async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+    const newSettings = {
+      blinkMinutes: parseInt(document.getElementById('blink-minutes-input').value) || 5,
+      scrollSpeed: parseInt(document.getElementById('scroll-speed-input').value) || 3,
+      viewerSize: parseInt(document.getElementById('viewer-size-input').value) || 3,
+      calculatorSize: parseInt(document.getElementById('calculator-size-input').value) || 3,
+      viewerFooterText: document.getElementById('viewer-text-input').value || "⬅️ para retirar",
+      viewerFooterSize: parseInt(document.getElementById('viewer-footer-size-input').value) || 2,
+    };
+    const sessionDocRef = doc(db, "sessions", userId);
+    await updateDoc(sessionDocRef, { settings: newSettings });
+    showNotification("Configuración guardada.");
+    backToMenu();
+  });
 
-            oldOrdersInterval = setInterval(() => renderOperatorList(sessionData.codes), 60000);
-        }
+  // Calculadora
+  const calculatorOverlay = document.getElementById('calculator-overlay');
+  const calculatorModal = document.getElementById('calculator-modal');
+  let calcState = { displayValue: '0', firstOperand: null, waitingForSecondOperand: false, operator: null, expression: '' };
 
-        function renderViewerList(codes, isNewCode) {
-            const listEl = document.getElementById('viewer-code-list');
-            listEl.innerHTML = '';
-             if (codes.length === 0) {
-                listEl.innerHTML = `<p class="viewer-no-codes text-gray-500 text-center mt-32 text-2xl col-span-full">Esperando pedidos...</p>`;
-                updateViewerAutoScroll();
-                return;
-            }
-            
-            const sourceStyles = { 'PedidosYa': 'bg-red-600 text-white', 'Rappi': 'bg-sky-500 text-white', 'RappiCargo': 'bg-sky-500 text-white', 'MercadoPago': 'bg-yellow-400 text-black' };
-            const sizeClasses = ['text-5xl md:text-6xl', 'text-6xl md:text-7xl', 'text-7xl md:text-8xl', 'text-8xl', 'text-8xl lg:text-9xl'];
-            
-            codes.forEach((c, index) => {
-                let sizeClass = sizeClasses[userSettings.viewerSize - 1] || sizeClasses[2];
-                if (c.type === 'name') {
-                    sizeClass = 'text-4xl md:text-5xl'; // Use a smaller font size for names
-                }
+  function updateCalcDisplay() {
+    document.getElementById('calc-display').textContent = calcState.displayValue;
+    document.getElementById('calc-expression-display').textContent = calcState.expression;
+  }
 
-                const displaySource = c.source === 'RappiCargo' ? 'Rappi' : c.source;
-                const style = sourceStyles[c.source] || 'bg-gray-200';
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-xl shadow-lg p-4 flex flex-col items-center justify-center aspect-video';
-                if (index === 0 && isNewCode) card.classList.add('new-order-pop');
-                card.innerHTML = `
-                    <p class="font-black text-gray-900 ${sizeClass} tracking-tighter">${c.code}</p>
-                    <div class="mt-4 px-6 py-2 rounded-lg ${style}"><p class="font-bold text-xl">${displaySource}</p></div>`;
-                listEl.appendChild(card);
-            });
-            
-            const footerTextEl = document.getElementById('viewer-footer-text');
-            footerTextEl.textContent = userSettings.viewerFooterText;
-            const footerSizeClasses = ['text-xl py-3', 'text-2xl py-4', 'text-3xl py-5'];
-            footerTextEl.className = `text-center font-bold flex-shrink-0 bg-gray-100 dark:bg-gray-900 ${footerSizeClasses[userSettings.viewerFooterSize - 1] || footerSizeClasses[1]}`;
+  document.getElementById('open-calculator-btn').addEventListener('click', () => {
+    const sizeClasses = ['w-64','w-72','w-80','w-96','w-[26rem]'];
+    calculatorModal.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform open';
+    calculatorModal.classList.add(sizeClasses[userSettings.calculatorSize - 1] || sizeClasses[2]);
+    calculatorOverlay.classList.remove('hidden');
+  });
+  calculatorOverlay.addEventListener('click', (e) => {
+    if (e.target === calculatorOverlay) {
+      calculatorModal.classList.remove('open');
+      calculatorOverlay.classList.add('hidden');
+    }
+  });
+  document.getElementById('calc-buttons').addEventListener('click', (e) => {
+    const { target } = e;
+    if (!target.matches('button')) return;
+    const key = target.textContent;
 
-            updateViewerAutoScroll();
-        }
-        
-        function updateViewerAutoScroll() {
-            const listEl = document.getElementById('viewer-code-list');
-            if (scrollInterval) clearInterval(scrollInterval);
-            if (scrollPauseTimeout) clearTimeout(scrollPauseTimeout);
-            scrollInterval = null;
+    if (key === 'C') {
+      calcState = { displayValue:'0', firstOperand:null, waitingForSecondOperand:false, operator:null, expression:'' };
+    } else if (!isNaN(parseFloat(key)) || key === '.') {
+      if (calcState.waitingForSecondOperand) {
+        calcState.displayValue = key;
+        calcState.waitingForSecondOperand = false;
+      } else {
+        calcState.displayValue = calcState.displayValue === '0' ? key : (calcState.displayValue + key);
+      }
+    } else if (['+','-','*','/'].includes(key)) {
+      const inputValue = parseFloat(calcState.displayValue);
+      if (calcState.operator && calcState.waitingForSecondOperand)  {
+        calcState.operator = key;
+        calcState.expression = `${calcState.firstOperand} ${key}`;
+        return;
+      }
+      if (calcState.firstOperand == null) {
+        calcState.firstOperand = inputValue;
+      } else if (calcState.operator) {
+        const result = performCalculation[calcState.operator](calcState.firstOperand, inputValue);
+        calcState.displayValue = `${parseFloat(result.toFixed(7))}`;
+        calcState.firstOperand = result;
+      }
+      calcState.waitingForSecondOperand = true;
+      calcState.operator = key;
+      calcState.expression = `${calcState.firstOperand} ${key}`;
+    } else if (key === '=') {
+      if (calcState.operator == null || calcState.waitingForSecondOperand) return;
+      const inputValue = parseFloat(calcState.displayValue);
+      calcState.expression = `${calcState.firstOperand} ${calcState.operator} ${inputValue} =`;
+      const result = performCalculation[calcState.operator](calcState.firstOperand, inputValue);
+      calcState.displayValue = `${parseFloat(result.toFixed(7))}`;
+      calcState.firstOperand = null;
+      calcState.operator = null;
+      calcState.waitingForSecondOperand = true;
+    }
+    updateCalcDisplay();
+  });
+  const performCalculation = {
+    '/': (first, second) => first / second,
+    '*': (first, second) => first * second,
+    '+': (first, second) => first + second,
+    '-': (first, second) => first - second,
+  };
 
-            if (viewerView.classList.contains('hidden')) return;
+  // RappiCargo Modal
+  const rappicargoOverlay = document.getElementById('rappicargo-overlay');
+  const rappicargoModal = document.getElementById('rappicargo-modal');
+  document.getElementById('cancel-rappicargo-btn').addEventListener('click', () => {
+    rappicargoModal.classList.remove('open');
+    rappicargoOverlay.classList.add('hidden');
+  });
+  document.getElementById('save-rappicargo-btn').addEventListener('click', () => {
+    const nameInput = document.getElementById('rappicargo-name-input');
+    const name = String(nameInput.value || '').trim();
+    if (name) {
+      addCode(name, 'RappiCargo', 'name'); // addCode ya chequea duplicados
+      nameInput.value = '';
+      rappicargoModal.classList.remove('open');
+      rappicargoOverlay.classList.add('hidden');
+    } else {
+      showNotification("Por favor, ingresa un nombre.", "error");
+    }
+  });
 
-            setTimeout(() => {
-                const hasOverflow = listEl.scrollHeight > listEl.clientHeight;
-                if (hasOverflow) {
-                    let direction = 1;
-                    let paused = true;
-                    const speeds = [50, 40, 30, 20, 10];
-                    const scrollSpeedMs = speeds[userSettings.scrollSpeed - 1] || 30;
-                    const startScrollCycle = () => {
-                        scrollPauseTimeout = setTimeout(() => {
-                            paused = false;
-                            scrollInterval = setInterval(() => {
-                                if (paused) return;
-                                listEl.scrollBy(0, direction);
-                                const atBottom = listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 1;
-                                const atTop = listEl.scrollTop <= 0;
-                                if ((direction === 1 && atBottom) || (direction === -1 && atTop)) {
-                                    paused = true;
-                                    direction *= -1;
-                                    clearInterval(scrollInterval);
-                                    startScrollCycle();
-                                }
-                            }, scrollSpeedMs);
-                        }, 3000);
-                    };
-                    startScrollCycle();
-                }
-            }, 500);
-        }
+  // Utilidades
+  function showNotification(message, type = 'success') {
+    const modal = document.getElementById('notification-modal');
+    if (!modal) return;
+    document.getElementById('notification-message').textContent = message;
+    modal.className = 'hidden fixed top-5 right-5 border rounded-lg shadow-lg px-6 py-4 z-50 transition-transform duration-300 translate-x-full';
+    const classesToAdd = type === 'error' ? ['bg-red-100', 'dark:bg-red-900/50'] : ['bg-white', 'dark:bg-gray-700'];
+    modal.classList.add(...classesToAdd);
+    void modal.offsetWidth;
+    modal.classList.remove('translate-x-full');
+    clearTimeout(notificationTimeout);
+    notificationTimeout = setTimeout(() => modal.classList.add('translate-x-full'), 4000);
+  }
 
-        function renderHistoryList(history) {
-            const tableBody = document.getElementById('history-table-body');
-            tableBody.innerHTML = '';
-            if (history.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-8">No hay historial de pedidos.</td></tr>`;
-                return;
-            }
-            history.forEach(c => {
-                const created = c.timestamp?.toDate ? c.timestamp.toDate() : null;
-                const deleted = c.deletedAt?.toDate ? c.deletedAt.toDate() : null;
-                let duration = 'N/A';
-                if (created && deleted) {
-                    const diffMs = deleted - created;
-                    const diffMins = Math.floor(diffMs / 60000);
-                    const diffSecs = Math.floor((diffMs % 60000) / 1000);
-                    duration = `${diffMins} min, ${diffSecs} seg`;
-                }
-
-                tableBody.innerHTML += `
-                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">${c.code}</th>
-                        <td class="px-6 py-4">${c.source}</td>
-                        <td class="px-6 py-4">${created ? created.toLocaleString() : 'N/A'}</td>
-                        <td class="px-6 py-4">${deleted ? deleted.toLocaleString() : 'N/A'}</td>
-                        <td class="px-6 py-4">${duration}</td>
-                    </tr>`;
-            });
-        }
-
-        function filterAndRenderHistory() {
-            const searchTerm = document.getElementById('history-search-input').value.toLowerCase();
-            const filterValue = document.getElementById('history-filter-select').value;
-            
-            const filteredHistory = sessionData.history.filter(item => {
-                const codeMatch = item.code.toLowerCase().includes(searchTerm);
-                const filterMatch = filterValue === 'all' || item.source === filterValue;
-                return codeMatch && filterMatch;
-            });
-            
-            renderHistoryList(filteredHistory);
-        }
-
-        // --- MANEJADORES DE EVENTOS ---
-        document.getElementById('switch-to-viewer-btn').addEventListener('click', () => setupRoleView('viewer'));
-        document.getElementById('switch-to-operator-btn').addEventListener('click', () => setupRoleView('operator'));
-        
-        function backToMenu() {
-            localStorage.removeItem('userRole');
-            showView(roleSelectionView);
-        }
-        document.getElementById('op-back-to-menu-btn').addEventListener('click', backToMenu);
-        document.getElementById('viewer-back-to-menu-btn').addEventListener('click', backToMenu);
-        document.getElementById('history-back-to-menu-btn').addEventListener('click', backToMenu);
-        document.getElementById('settings-back-to-menu-btn').addEventListener('click', backToMenu);
-
-        // Teclado y envío
-        document.querySelectorAll('.keypad-btn').forEach(btn => btn.addEventListener('click', () => {
-            const display = document.getElementById('code-display');
-            if (display.textContent.length < 4) display.textContent += btn.textContent;
-        }));
-        document.getElementById('clear-btn').addEventListener('click', () => document.getElementById('code-display').textContent = '');
-        document.getElementById('backspace-btn').addEventListener('click', () => {
-            const display = document.getElementById('code-display');
-            display.textContent = display.textContent.slice(0, -1);
-        });
-        document.querySelectorAll('.source-btn').forEach(btn => btn.addEventListener('click', () => {
-            const source = btn.dataset.source;
-            if (source === 'RappiCargo') {
-                document.getElementById('rappicargo-overlay').classList.remove('hidden');
-                document.getElementById('rappicargo-modal').classList.add('open');
-            } else {
-                document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentSource = source;
-            }
-        }));
-        document.getElementById('submit-code-btn').addEventListener('click', () => {
-            const code = document.getElementById('code-display').textContent;
-            if (code && currentSource) {
-                addCode(code, currentSource);
-                document.getElementById('code-display').textContent = '';
-                document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
-                currentSource = null;
-            } else { showNotification("Ingresa un código y selecciona un origen", "error"); }
-        });
-        document.getElementById('operator-code-list').addEventListener('click', e => {
-            const deleteBtn = e.target.closest('.delete-btn');
-            if (deleteBtn) deleteCode(deleteBtn.dataset.id);
-        });
-
-        // Historial
-        document.getElementById('history-search-input').addEventListener('input', filterAndRenderHistory);
-        document.getElementById('history-filter-select').addEventListener('change', filterAndRenderHistory);
-        document.getElementById('export-pdf-btn').addEventListener('click', () => {
-            const doc = new jsPDF();
-            doc.autoTable({ html: '#history-table' });
-            doc.save('historial-pedidos.pdf');
-        });
-        document.getElementById('delete-history-btn').addEventListener('click', async () => {
-            const userId = auth.currentUser?.uid;
-            if (!userId) return;
-            if (confirm("¿Estás seguro de que quieres borrar todo el historial permanentemente? Esta acción no se puede deshacer.")) {
-                const sessionDocRef = doc(db, "sessions", userId);
-                await updateDoc(sessionDocRef, { history: [] });
-                showNotification("Historial borrado correctamente.");
-            }
-        });
-
-        // Ajustes
-        function populateSettingsForm() {
-            document.getElementById('blink-minutes-input').value = userSettings.blinkMinutes;
-            document.getElementById('scroll-speed-input').value = userSettings.scrollSpeed;
-            document.getElementById('viewer-size-input').value = userSettings.viewerSize;
-            document.getElementById('calculator-size-input').value = userSettings.calculatorSize;
-            document.getElementById('viewer-text-input').value = userSettings.viewerFooterText;
-            document.getElementById('viewer-footer-size-input').value = userSettings.viewerFooterSize;
-        }
-        document.getElementById('save-settings-btn').addEventListener('click', async () => {
-            const userId = auth.currentUser?.uid;
-            if (!userId) return;
-            const newSettings = {
-                blinkMinutes: parseInt(document.getElementById('blink-minutes-input').value) || 5,
-                scrollSpeed: parseInt(document.getElementById('scroll-speed-input').value) || 3,
-                viewerSize: parseInt(document.getElementById('viewer-size-input').value) || 3,
-                calculatorSize: parseInt(document.getElementById('calculator-size-input').value) || 3,
-                viewerFooterText: document.getElementById('viewer-text-input').value || "⬅️ para retirar",
-                viewerFooterSize: parseInt(document.getElementById('viewer-footer-size-input').value) || 2,
-            };
-            const sessionDocRef = doc(db, "sessions", userId);
-            await updateDoc(sessionDocRef, { settings: newSettings });
-            showNotification("Configuración guardada.");
-            backToMenu();
-        });
-
-        // Calculadora
-        const calculatorOverlay = document.getElementById('calculator-overlay');
-        const calculatorModal = document.getElementById('calculator-modal');
-        let calcState = { displayValue: '0', firstOperand: null, waitingForSecondOperand: false, operator: null, expression: '' };
-
-        function updateCalcDisplay() { 
-            document.getElementById('calc-display').textContent = calcState.displayValue;
-            document.getElementById('calc-expression-display').textContent = calcState.expression;
-        }
-        
-        document.getElementById('open-calculator-btn').addEventListener('click', () => {
-            const sizeClasses = ['w-64', 'w-72', 'w-80', 'w-96', 'w-[26rem]'];
-            calculatorModal.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform open';
-            calculatorModal.classList.add(sizeClasses[userSettings.calculatorSize - 1] || sizeClasses[2]);
-            calculatorOverlay.classList.remove('hidden');
-        });
-        calculatorOverlay.addEventListener('click', (e) => {
-            if (e.target === calculatorOverlay) {
-                calculatorModal.classList.remove('open');
-                calculatorOverlay.classList.add('hidden');
-            }
-        });
-        document.getElementById('calc-buttons').addEventListener('click', (e) => {
-            const { target } = e;
-            if (!target.matches('button')) return;
-            const key = target.textContent;
-            
-            if (key === 'C') {
-                calcState = { displayValue: '0', firstOperand: null, waitingForSecondOperand: false, operator: null, expression: '' };
-            } else if (!isNaN(parseFloat(key)) || key === '.') {
-                if (calcState.waitingForSecondOperand) {
-                    calcState.displayValue = key;
-                    calcState.waitingForSecondOperand = false;
-                } else {
-                    calcState.displayValue = calcState.displayValue === '0' ? key : calcState.displayValue + key;
-                }
-            } else if (['+', '-', '*', '/'].includes(key)) {
-                const inputValue = parseFloat(calcState.displayValue);
-                if (calcState.operator && calcState.waitingForSecondOperand)  {
-                    calcState.operator = key;
-                    calcState.expression = `${calcState.firstOperand} ${key}`;
-                    return;
-                }
-                if (calcState.firstOperand == null) {
-                    calcState.firstOperand = inputValue;
-                } else if (calcState.operator) {
-                    const result = performCalculation[calcState.operator](calcState.firstOperand, inputValue);
-                    calcState.displayValue = `${parseFloat(result.toFixed(7))}`;
-                    calcState.firstOperand = result;
-                }
-                calcState.waitingForSecondOperand = true;
-                calcState.operator = key;
-                calcState.expression = `${calcState.firstOperand} ${key}`;
-            } else if (key === '=') {
-                if (calcState.operator == null || calcState.waitingForSecondOperand) return;
-                const inputValue = parseFloat(calcState.displayValue);
-                calcState.expression = `${calcState.firstOperand} ${calcState.operator} ${inputValue} =`;
-                const result = performCalculation[calcState.operator](calcState.firstOperand, inputValue);
-                calcState.displayValue = `${parseFloat(result.toFixed(7))}`;
-                calcState.firstOperand = null;
-                calcState.operator = null;
-                calcState.waitingForSecondOperand = true;
-            }
-            updateCalcDisplay();
-        });
-        const performCalculation = {
-            '/': (first, second) => first / second,
-            '*': (first, second) => first * second,
-            '+': (first, second) => first + second,
-            '-': (first, second) => first - second,
-        };
-
-        // RappiCargo Modal
-        const rappicargoOverlay = document.getElementById('rappicargo-overlay');
-        const rappicargoModal = document.getElementById('rappicargo-modal');
-        document.getElementById('cancel-rappicargo-btn').addEventListener('click', () => {
-            rappicargoModal.classList.remove('open');
-            rappicargoOverlay.classList.add('hidden');
-        });
-        document.getElementById('save-rappicargo-btn').addEventListener('click', () => {
-            const nameInput = document.getElementById('rappicargo-name-input');
-            const name = nameInput.value.trim();
-            if (name) {
-                addCode(name, 'RappiCargo', 'name');
-                nameInput.value = '';
-                rappicargoModal.classList.remove('open');
-                rappicargoOverlay.classList.add('hidden');
-            } else {
-                showNotification("Por favor, ingresa un nombre.", "error");
-            }
-        });
-        
-        // --- UTILIDADES ---
-        
-        function showNotification(message, type = 'success') {
-            const modal = document.getElementById('notification-modal');
-            if (!modal) return;
-            document.getElementById('notification-message').textContent = message;
-            modal.className = 'hidden fixed top-5 right-5 border rounded-lg shadow-lg px-6 py-4 z-50 transition-transform duration-300 translate-x-full';
-            const classesToAdd = type === 'error' ? ['bg-red-100', 'dark:bg-red-900/50'] : ['bg-white', 'dark:bg-gray-700'];
-            modal.classList.add(...classesToAdd);
-            void modal.offsetWidth;
-            modal.classList.remove('translate-x-full');
-            clearTimeout(notificationTimeout);
-            notificationTimeout = setTimeout(() => modal.classList.add('translate-x-full'), 4000);
-        }
-
-        function handleAuthError(error) {
-            let message = "Ocurrió un error.";
-            switch (error.code) {
-                case 'auth/user-not-found': message = "No se encontró un usuario con ese correo."; break;
-                case 'auth/wrong-password': message = "Contraseña incorrecta."; break;
-                case 'auth/email-already-in-use': message = "El correo electrónico ya está registrado."; break;
-                case 'auth/weak-password': message = "La contraseña debe tener al menos 6 caracteres."; break;
-                case 'auth/invalid-email': message = "El correo electrónico no es válido."; break;
-            }
-            showNotification(message, "error");
-        }
-
-    </script>
+  function handleAuthError(error) {
+    let message = "Ocurrió un error.";
+    switch (error.code) {
+      case 'auth/user-not-found': message = "No se encontró un usuario con ese correo."; break;
+      case 'auth/wrong-password': message = "Contraseña incorrecta."; break;
+      case 'auth/email-already-in-use': message = "El correo electrónico ya está registrado."; break;
+      case 'auth/weak-password': message = "La contraseña debe tener al menos 6 caracteres."; break;
+      case 'auth/invalid-email': message = "El correo electrónico no es válido."; break;
+    }
+    showNotification(message, "error");
+  }
+</script>
 </body>
 </html>

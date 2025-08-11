@@ -1,0 +1,39 @@
+    <!-- Historial -->
+    <div id="history-view" class="hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+          <div class="flex items-center gap-2">
+            <input type="text" id="history-search-input" placeholder="Buscar por código..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <select id="history-filter-select" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+              <option value="all">Todos</option>
+              <option value="PedidosYa">PedidosYa</option>
+              <option value="Rappi">Rappi</option>
+              <option value="RappiCargo">RappiCargo</option>
+              <option value="MercadoPago">MercadoPago</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button id="history-back-to-menu-btn" class="bg-gray-500 text-white font-semibold px-4 py-2 rounded-lg text-sm">Menú</button>
+            <button id="export-pdf-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg text-sm">PDF</button>
+            <button id="delete-history-btn" class="bg-red-600 text-white font-semibold px-4 py-2 rounded-lg text-sm">Borrar</button>
+            <button id="history-logout-btn" class="text-sm text-gray-500 hover:underline">Salir</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table id="history-table" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" class="px-6 py-3">Código/Nombre</th>
+                <th scope="col" class="px-6 py-3">Tipo</th>
+                <th scope="col" class="px-6 py-3">Creado</th>
+                <th scope="col" class="px-6 py-3">Completado</th>
+                <th scope="col" class="px-6 py-3">Duración</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+

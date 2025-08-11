@@ -1,0 +1,38 @@
+  <!-- 2) Menú de roles -->
+  <div id="role-selection-view" class="hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center max-w-2xl mx-auto">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Selecciona tu Rol</h1>
+      <p id="welcome-email" class="text-gray-600 dark:text-gray-300 mb-8"></p>
+
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <button id="select-operator-btn" class="p-4 sm:p-6 bg-blue-50 dark:bg-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900 border-2 border-blue-200 dark:border-blue-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">⌨️</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Operador</h2>
+        </button>
+
+        <button id="select-viewer-btn" class="p-4 sm:p-6 bg-green-50 dark:bg-green-900/50 hover:bg-green-100 dark:hover:bg-green-900 border-2 border-green-200 dark:border-green-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">📺</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Visualizador</h2>
+        </button>
+
+        <button id="select-history-btn" class="p-4 sm:p-6 bg-purple-50 dark:bg-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-900 border-2 border-purple-200 dark:border-purple-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">📋</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Historial</h2>
+        </button>
+
+        <button id="select-settings-btn" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-500 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">⚙️</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Ajustes</h2>
+        </button>
+
+        <!-- Nuevo: Cierre pedidos -->
+        <button id="select-closeorders-btn" class="p-4 sm:p-6 bg-emerald-50 dark:bg-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-900 border-2 border-emerald-200 dark:border-emerald-800 rounded-lg transition flex flex-col items-center justify-center">
+          <span class="text-4xl sm:text-5xl">✅</span>
+          <h2 class="text-lg sm:text-xl font-bold mt-2 dark:text-white">Cierre pedidos</h2>
+        </button>
+      </div>
+
+      <button id="role-logout-btn" class="mt-8 text-sm text-gray-500 hover:underline">Cerrar Sesión</button>
+    </div>
+  </div>
+

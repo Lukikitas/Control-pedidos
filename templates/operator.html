@@ -1,0 +1,49 @@
+    <!-- Operador -->
+    <div id="operator-view" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6 flex flex-col">
+          <div class="flex flex-wrap justify-between items-center mb-4 gap-y-2">
+            <h2 class="text-xl font-bold">Operador</h2>
+            <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
+              <button id="op-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
+              <button id="switch-to-viewer-btn" class="text-sm text-blue-600 hover:underline">Visualizador</button>
+              <button id="op-logout-btn" class="text-sm text-red-600 hover:underline">Salir</button>
+            </div>
+          </div>
+
+          <div id="code-display" class="w-full text-center text-5xl font-mono tracking-widest px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg mb-4 h-20 flex items-center justify-center"></div>
+
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">1</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">2</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">3</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">4</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">5</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">6</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">7</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">8</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">9</button>
+            <button id="clear-btn" class="text-xl font-bold py-4 bg-red-200 dark:bg-red-800/50 rounded-lg hover:bg-red-300 dark:hover:bg-red-700/50">C</button>
+            <button class="keypad-btn text-2xl font-bold py-4 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">0</button>
+            <button id="backspace-btn" class="text-2xl font-bold py-4 bg-yellow-200 dark:bg-yellow-800/50 rounded-lg hover:bg-yellow-300 dark:hover:bg-yellow-700/50">⌫</button>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 mb-4">
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-red-600 text-white font-semibold" data-source="PedidosYa">PedidosYa</button>
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-sky-500 text-white font-semibold" data-source="Rappi">Rappi</button>
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-yellow-400 text-black font-semibold" data-source="MercadoPago">M. Pago</button>
+            <button class="source-btn flex items-center justify-center p-3 rounded-lg bg-orange-500 text-white font-semibold" data-source="RappiCargo">RappiCargo</button>
+          </div>
+
+          <button id="submit-code-btn" class="w-full bg-green-600 text-white font-bold py-4 rounded-lg hover:bg-green-700 mb-3">Guardar Pedido</button>
+          <!-- Botón calculadora: debajo del Guardar -->
+          <button id="open-calculator-btn" class="w-full bg-blue-600 text-white rounded-lg p-4 text-lg font-semibold hover:bg-blue-700 transition">Abrir calculadora 📟</button>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+          <h2 class="text-xl font-bold mb-4">Pedidos Activos</h2>
+          <div id="operator-code-list" class="space-y-2 h-[600px] overflow-y-auto pr-2"></div>
+        </div>
+      </div>
+    </div>
+

@@ -1,0 +1,31 @@
+  <!-- Calculadora -->
+  <div id="calculator-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+    <div id="calculator-modal" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl transition-transform transform">
+      <div id="calc-expression-display" class="text-right text-gray-500 dark:text-gray-400 text-sm h-6 mb-1 truncate"></div>
+      <div id="calc-display" class="bg-gray-100 dark:bg-gray-900 text-right rounded p-2 mb-2 text-2xl font-mono">0</div>
+      <div id="calc-buttons" class="grid grid-cols-4 gap-2">
+        <button class="calc-btn bg-red-500 text-white rounded p-2 text-lg">C</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">/</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">*</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 rounded p-2 text-lg">-</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">7</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">8</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">9</button>
+        <button class="calc-btn bg-gray-200 dark:bg-gray-600 row-span-2 rounded p-2 text-lg">+</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">4</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">5</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">6</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">1</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">2</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">3</button>
+        <button class="calc-btn bg-blue-500 text-white row-span-2 rounded p-2 text-lg">=</button>
+
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 col-span-2 rounded p-2 text-lg">0</button>
+        <button class="calc-btn bg-gray-100 dark:bg-gray-700 rounded p-2 text-lg">.</button>
+      </div>
+    </div>
+  </div>
+

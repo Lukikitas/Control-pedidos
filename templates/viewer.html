@@ -1,0 +1,16 @@
+    <!-- Visualizador -->
+    <div id="viewer-view" class="hidden flex flex-col h-screen relative">
+      <div class="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
+        <img src="https://1000marcas.net/wp-content/uploads/2020/01/KFC-logo-600x338.png" class="w-1/2 h-1/2 object-contain opacity-10" alt="Marca de agua de KFC"/>
+      </div>
+      <div class="flex justify-between items-center mb-2 px-2 flex-shrink-0 relative z-10">
+        <h1 class="text-2xl font-black text-gray-700">VISUALIZADOR DE PEDIDOS</h1>
+        <div class="flex items-center gap-4">
+          <button id="viewer-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
+          <button id="switch-to-operator-btn" class="text-sm text-blue-600 hover:underline">Ver Operador</button>
+          <button id="viewer-logout-btn" class="text-sm text-red-600 hover:underline">Cerrar Sesión</button>
+        </div>
+      </div>
+      <div id="viewer-code-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-grow overflow-y-auto p-2 relative z-10"></div>
+      <div id="viewer-footer-text" class="text-center font-bold flex-shrink-0 bg-gray-100 dark:bg-gray-900 relative z-10"></div>
+    </div>

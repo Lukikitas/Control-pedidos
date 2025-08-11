@@ -1,0 +1,25 @@
+    <!-- Cierre pedidos -->
+    <div id="closeorders-view" class="hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <h2 class="text-xl font-black">Cierre de pedidos</h2>
+          <div class="flex items-center gap-2">
+            <button id="closeorders-back-to-menu-btn" class="text-sm text-gray-500 hover:underline">Menú</button>
+            <button id="closeorders-logout-btn" class="text-sm text-red-600 hover:underline">Salir</button>
+          </div>
+        </div>
+
+        <!-- Filtros táctiles -->
+        <div class="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <button class="co-filter tab-active px-3 py-2 rounded-lg text-sm font-semibold border" data-filter="all">Todos</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-red-300 text-red-700 bg-red-50 dark:bg-red-900/20" data-filter="PedidosYa">PedidosYa</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-orange-300 text-orange-700 bg-orange-50 dark:bg-orange-900/20" data-filter="Rappi">Rappi</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-sky-300 text-sky-700 bg-sky-50 dark:bg-sky-900/20" data-filter="RappiCargo">RappiCargo</button>
+          <button class="co-filter px-3 py-2 rounded-lg text-sm font-semibold border border-green-300 text-green-700 bg-green-50 dark:bg-green-900/20" data-filter="MercadoPago">MercadoPago</button>
+        </div>
+
+        <!-- Grupos por tipo (sin “Finalizar todos”) -->
+        <div id="closeorders-groups" class="mt-4 space-y-4"></div>
+      </div>
+    </div>
+

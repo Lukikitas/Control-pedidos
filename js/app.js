@@ -527,12 +527,3 @@ const firebaseConfig = {
     doc,
     updateDoc
   };
-
-  import './login.js';
-  import './operator.js';
-  import './viewer.js';
-  import './closeorders.js';
-  import './history.js';
-  import './settings.js';
-  import './calculator.js';
-  import './rappicargo.js';

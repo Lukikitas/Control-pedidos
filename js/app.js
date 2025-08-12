@@ -172,7 +172,7 @@ const firebaseConfig = {
     return (sessionData.codes || []).some(c => String(c.code).trim() === normalized && c.source === source);
   }
 
-  async function addCode(code, source, type = 'code') {
+  async function addCode(code, source, type = 'code', note = '') {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
 
@@ -187,7 +187,9 @@ const firebaseConfig = {
       return;
     }
 
+    const noteTrim = String(note).trim();
     const newCode = { id: crypto.randomUUID(), code: codeTrim, source, timestamp: new Date(), type };
+    if (noteTrim) newCode.note = noteTrim;
     const sessionDocRef = doc(db, "sessions", userId);
     await updateDoc(sessionDocRef, { codes: [newCode, ...sessionData.codes] });
   }
@@ -239,6 +241,7 @@ const firebaseConfig = {
           <div class="flex flex-col">
             <span class="font-mono text-2xl tracking-wider font-bold">${c.code}</span>
             <span class="text-xs font-semibold">${c.source}</span>
+            ${c.note ? `<span class="text-xs italic">${c.note}</span>` : ''}
           </div>
           <button data-id="${c.id}" class="delete-btn ml-auto p-2 rounded-full hover:bg-red-200 dark:hover:bg-red-800/50" title="Mover a historial">
             <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -346,12 +349,13 @@ const firebaseConfig = {
 
       tableBody.innerHTML += `
         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">${c.code}</th>
-          <td class="px-6 py-4">${c.source}</td>
-          <td class="px-6 py-4">${created ? created.toLocaleString() : 'N/A'}</td>
-          <td class="px-6 py-4">${deleted ? deleted.toLocaleString() : 'N/A'}</td>
-          <td class="px-6 py-4">${duration}</td>
-        </tr>`;
+            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">${c.code}</th>
+            <td class="px-6 py-4">${c.source}</td>
+            <td class="px-6 py-4">${c.note || ''}</td>
+            <td class="px-6 py-4">${created ? created.toLocaleString() : 'N/A'}</td>
+            <td class="px-6 py-4">${deleted ? deleted.toLocaleString() : 'N/A'}</td>
+            <td class="px-6 py-4">${duration}</td>
+          </tr>`;
     });
   }
 
@@ -361,8 +365,9 @@ const firebaseConfig = {
 
     const filteredHistory = (sessionData.history || []).filter(item => {
       const codeMatch = String(item.code).toLowerCase().includes(searchTerm);
+      const noteMatch = String(item.note || '').toLowerCase().includes(searchTerm);
       const filterMatch = filterValue === 'all' || item.source === filterValue;
-      return codeMatch && filterMatch;
+      return (codeMatch || noteMatch) && filterMatch;
     });
     renderHistoryList(filteredHistory);
   }
@@ -428,6 +433,7 @@ const firebaseConfig = {
               <div class="min-w-0">
                 <p class="font-black text-2xl tracking-tight truncate">${i.code}</p>
                 <p class="text-xs text-gray-500">${i.type === 'name' ? 'Nombre' : 'Código'} • ${new Date((i.timestamp?.seconds||0)*1000).toLocaleTimeString()}</p>
+                ${i.note ? `<p class=\"text-xs text-gray-600 dark:text-gray-400 truncate mt-1\">${i.note}</p>` : ''}
               </div>
               <button class="finish-item bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm co-btn" data-id="${i.id}">
                 Finalizar

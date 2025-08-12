@@ -28,9 +28,11 @@ document.querySelectorAll('.source-btn').forEach(btn => btn.addEventListener('cl
 
 document.getElementById('submit-code-btn').addEventListener('click', () => {
   const code = document.getElementById('code-display').textContent;
+  const note = document.getElementById('note-input').value;
   if (code && currentSource) {
-    addCode(code, currentSource);
+    addCode(code, currentSource, 'code', note);
     document.getElementById('code-display').textContent = '';
+    document.getElementById('note-input').value = '';
     document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
     setCurrentSource(null);
   } else {
